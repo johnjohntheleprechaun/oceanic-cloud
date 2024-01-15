@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  oceanic-cloud
+
+Transform:
+- AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 3
+    Architectures:
+      - arm64
+    MemorySize: 128
+
+Resources:
+  testFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/functions/test.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+           Path: /
+           Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Format: esm
+        Minify: false
+        OutExtension:
+          - .js=.mjs
+        Target: "es2020"
+        EntryPoints: 
+          - src/functions/test.ts

@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.131"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.490.0",
+    "esbuild": "^0.19.11"
+  }
+}
