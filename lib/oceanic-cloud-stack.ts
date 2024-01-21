@@ -6,7 +6,6 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 import path = require('path');
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 const lambdaDefaults = {
     runtime: Runtime.NODEJS_20_X,
