@@ -7,6 +7,7 @@ Transform:
 
 Globals:
   Function:
+    CodeUri: "."
     Runtime: nodejs20.x
     Timeout: 3
     Architectures:
@@ -14,23 +15,52 @@ Globals:
     MemorySize: 128
 
 Resources:
-  testFunction:
+  OceanicAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Auth:
+        DefaultAuthorizer: TokenAuthorizer
+        Authorizers:
+          TokenAuthorizer:
+            FunctionArn: !GetAtt AuthFunction.Arn
+  AuthFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/functions/test.handler
-      Events:
-        Api:
-          Type: Api
-          Properties:
-           Path: /
-           Method: GET
+      Handler: authorizer.handler
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
         Format: esm
-        Minify: false
         OutExtension:
           - .js=.mjs
-        Target: "es2020"
+        EntryPoints:
+          - src/functions/authorizer.ts
+  TestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: test.handler
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref OceanicAPI
+            Path: /
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        MainFields: module,main
+        Format: esm
+        Minify: false
+        Sourcemap: false
+        OutExtension:
+          - .js=.mjs
         EntryPoints: 
           - src/functions/test.ts
+
+
+Outputs:
+  APIEndpoint:
+    Description: URL of OceanicAPI
+    Value: !Sub "https://${OceanicAPI}.execute-api.${AWS::Region}.amazonaws.com/prod"
