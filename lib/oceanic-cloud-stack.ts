@@ -19,16 +19,17 @@ export class OceanicCloudStack extends cdk.Stack {
 
         // Define the basics of the API
         const api = new RestApi(this, "oceanic-api");
+
         // Add the authorizer
         const authFunction = new NodejsFunction(this, "auth-function", {
             runtime: lambdaDefaults.runtime,
             architecture: lambdaDefaults.architecture,
             entry: path.join(lambdaDefaults.directory, "authorizer.ts")
-        })
+        });
         const authorizer = new RequestAuthorizer(this, "authorizer", {
             handler: authFunction,
             identitySources: [IdentitySource.header("Authorization")]
-        })
+        });
 
         // Test endpoint
         const testFunction = new NodejsFunction(this, "test-function", {
