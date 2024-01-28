@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { IdentitySource, LambdaIntegration, RequestAuthorizer, RestApi } from 'aws-cdk-lib/aws-apigateway';
-import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
+import { Certificate, ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { AllowedMethods, Distribution, PriceClass } from 'aws-cdk-lib/aws-cloudfront';
 import { RestApiOrigin, S3Origin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { TableV2 } from 'aws-cdk-lib/aws-dynamodb';
@@ -16,53 +16,63 @@ const lambdaDefaults = {
     directory: path.join(__dirname, "functions")
 }
 
+interface OceanicStackProps extends cdk.StackProps {
+    isProd: boolean
+    domainName?: string
+    certArn?: string
+}
 export class OceanicCloudStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    constructor(scope: Construct, id: string, props?: OceanicStackProps) {
         super(scope, id, props);
+        
+        const dynamoName = `oceanic-${props?.isProd ? "prod" : "test"}-db`;
+        const bucketName = `oceanic-${props?.isProd ? "prod" : "test"}-documents`;
+        console.log(props?.isProd);
+        console.log(`Table name: ${dynamoName}\nBucket name: ${bucketName}`);
 
         // Define non-lambda resources
         const api = new RestApi(this, "oceanic-api");
-        const oceanicFiles = new Bucket(this, "user-documents");
+        const userDocuments = new Bucket(this, "user-documents", {
+            bucketName: bucketName,
+            removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY
+        });
         const oceanicDB = new TableV2(this, "oceanic-db", {
+            tableName: dynamoName,
+            removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
             partitionKey: { name: "user", type: cdk.aws_dynamodb.AttributeType.STRING },
             sortKey: { name: "dataType", type: cdk.aws_dynamodb.AttributeType.STRING },
         });
 
         // Define cloudfront distro
-        const domainName = new cdk.CfnParameter(this, "domain", {
-            type: "String",
-            description: "The domain name for the cloudfront distribution. Leave empty if none"
-        });
-        let certArn = new cdk.CfnParameter(this, "domain-cert", {
-            type: "String",
-            description: "The ARN of the certificate for the cloudfront distribution."
-        });
-        let certificate = Certificate.fromCertificateArn(this, "cert-arn", certArn.valueAsString);
+        let certificate: ICertificate | undefined;
+        if (props?.certArn) {
+            certificate = Certificate.fromCertificateArn(this, "cert-arn", props?.certArn);
+        }
         const cdn = new Distribution(this, "oceanic-distro", {
             defaultBehavior: {
                 origin: new RestApiOrigin(api, {
-                    originPath: "dist",
+                    originPath: "prod",
                 }),
-                
                 allowedMethods: AllowedMethods.ALLOW_ALL
             },
             additionalBehaviors: {
-                "files": {
-                    origin: new S3Origin(oceanicFiles)
+                "files/*": {
+                    origin: new S3Origin(userDocuments)
                 }
             },
-            domainNames: [domainName.valueAsString],
+            domainNames: props?.domainName ? [props.domainName] : undefined,
             certificate: certificate,
             enabled: true,
             priceClass: PriceClass.PRICE_CLASS_100
         });
+        new cdk.CfnOutput(this, "cloudfront-domain", { value: `https://${cdn.distributionDomainName}` })
 
         // Add API authorizer
         const authFunction = new NodejsFunction(this, "auth-function", {
             runtime: lambdaDefaults.runtime,
             architecture: lambdaDefaults.architecture,
             entry: path.join(lambdaDefaults.directory, "authorizer.ts"),
-            environment: { "DYNAMO_TABLE": oceanicDB.tableName }
+            environment: { "DYNAMO_TABLE": dynamoName }
         });
         const authorizer = new RequestAuthorizer(this, "authorizer", {
             handler: authFunction,
@@ -75,7 +85,7 @@ export class OceanicCloudStack extends cdk.Stack {
             architecture: lambdaDefaults.architecture,
             entry: path.join(lambdaDefaults.directory, "signup.ts"),
             timeout: cdk.Duration.minutes(1),
-            environment: { "DYNAMO_TABLE": oceanicDB.tableName }
+            environment: { "DYNAMO_TABLE": dynamoName }
         });
         oceanicDB.grant(signupFunction, "dynamodb:PutItem");
         const signupIntegration = new LambdaIntegration(signupFunction)
@@ -87,7 +97,7 @@ export class OceanicCloudStack extends cdk.Stack {
             runtime: lambdaDefaults.runtime,
             architecture: lambdaDefaults.architecture,
             entry: path.join(lambdaDefaults.directory, "test.ts"),
-            environment: { DYNAMO_TABLE: oceanicDB.tableName, DYNAMO_ARN: oceanicDB.tableArn }
+            environment: { DYNAMO_TABLE: dynamoName, BUCKET: bucketName }
         });
         const testIntegration = new LambdaIntegration(testFunction);
         api.root.addResource("test")
