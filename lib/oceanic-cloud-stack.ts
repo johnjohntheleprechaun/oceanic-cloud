@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { IdentitySource, LambdaIntegration, RequestAuthorizer, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import { Certificate, ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
-import { AllowedMethods, Distribution, PriceClass } from 'aws-cdk-lib/aws-cloudfront';
+import { AllowedMethods, Distribution, OriginAccessIdentity, PriceClass } from 'aws-cdk-lib/aws-cloudfront';
 import { RestApiOrigin, S3Origin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
@@ -48,6 +48,8 @@ export class OceanicCloudStack extends cdk.Stack {
         if (props?.certArn) {
             certificate = Certificate.fromCertificateArn(this, "cert-arn", props?.certArn);
         }
+        const accessIdentity = new OriginAccessIdentity(this, "s3-access-identity");
+        userDocuments.grantReadWrite(accessIdentity);
         const cdn = new Distribution(this, "oceanic-distro", {
             defaultBehavior: {
                 origin: new RestApiOrigin(api, {
@@ -57,7 +59,10 @@ export class OceanicCloudStack extends cdk.Stack {
             },
             additionalBehaviors: {
                 "files/*": {
-                    origin: new S3Origin(userDocuments)
+                    origin: new S3Origin(userDocuments, {
+                        originPath: "/",
+                        originAccessIdentity: accessIdentity
+                    })
                 }
             },
             domainNames: props?.domainName ? [props.domainName] : undefined,
