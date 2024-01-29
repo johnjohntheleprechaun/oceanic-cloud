@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { IdentitySource, LambdaIntegration, RequestAuthorizer, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import { Certificate, ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
-import { AllowedMethods, Distribution, OriginAccessIdentity, PriceClass } from 'aws-cdk-lib/aws-cloudfront';
+import { AllowedMethods, CachePolicy, Distribution, OriginAccessIdentity, PriceClass } from 'aws-cdk-lib/aws-cloudfront';
 import { RestApiOrigin, S3Origin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
@@ -55,14 +55,16 @@ export class OceanicCloudStack extends cdk.Stack {
                 origin: new RestApiOrigin(api, {
                     originPath: "prod",
                 }),
-                allowedMethods: AllowedMethods.ALLOW_ALL
+                allowedMethods: AllowedMethods.ALLOW_ALL,
+                cachePolicy: CachePolicy.CACHING_DISABLED
             },
             additionalBehaviors: {
-                "files/*": {
+                "documents/*": {
                     origin: new S3Origin(userDocuments, {
                         originPath: "/",
                         originAccessIdentity: accessIdentity
-                    })
+                    }),
+                    cachePolicy: CachePolicy.CACHING_DISABLED
                 }
             },
             domainNames: props?.domainName ? [props.domainName] : undefined,
