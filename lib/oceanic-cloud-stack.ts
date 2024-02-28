@@ -32,6 +32,7 @@ export class OceanicCloudStack extends cdk.Stack {
 
         // Define non-lambda resources
         const api = new RestApi(this, "oceanic-api", {
+            restApiName: `oceanic-${props?.isProd ? "prod" : "test"}-api`,
             deployOptions: {
                 stageName: "v1"
             }
