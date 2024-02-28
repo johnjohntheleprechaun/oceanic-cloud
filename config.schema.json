@@ -1,0 +1,27 @@
+{
+    "type": "object",
+    "properties": {
+        "prodProps": {
+            "type": "object",
+            "properties": {
+                "certArn": {
+                    "type": "string"
+                },
+                "domainName": {
+                    "type": "string"
+                }
+            }
+        },
+        "testProps": {
+            "type": "object",
+            "properties": {
+                "certArn": {
+                    "type": "string"
+                },
+                "domainName": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
