@@ -31,7 +31,11 @@ export class OceanicCloudStack extends cdk.Stack {
         console.log(`Table name: ${dynamoName}\nBucket name: ${bucketName}`);
 
         // Define non-lambda resources
-        const api = new RestApi(this, "oceanic-api");
+        const api = new RestApi(this, "oceanic-api", {
+            deployOptions: {
+                stageName: "v1"
+            }
+        });
         const userDocuments = new Bucket(this, "user-documents", {
             bucketName: bucketName,
             removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY
@@ -52,9 +56,7 @@ export class OceanicCloudStack extends cdk.Stack {
         userDocuments.grantReadWrite(accessIdentity);
         const cdn = new Distribution(this, "oceanic-distro", {
             defaultBehavior: {
-                origin: new RestApiOrigin(api, {
-                    originPath: "prod",
-                }),
+                origin: new RestApiOrigin(api),
                 allowedMethods: AllowedMethods.ALLOW_ALL,
                 cachePolicy: CachePolicy.CACHING_DISABLED
             },
