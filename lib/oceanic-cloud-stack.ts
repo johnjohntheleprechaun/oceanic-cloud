@@ -1,8 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { CognitoUserPoolsAuthorizer, LambdaIntegration, RestApi } from 'aws-cdk-lib/aws-apigateway';
-import { Certificate, ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
-import { AllowedMethods, CachePolicy, Distribution, OriginAccessIdentity, PriceClass } from 'aws-cdk-lib/aws-cloudfront';
-import { RestApiOrigin, S3Origin } from 'aws-cdk-lib/aws-cloudfront-origins';
+import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { AccountRecovery, Mfa, UserPool, UserPoolEmail, VerificationEmailStyle } from 'aws-cdk-lib/aws-cognito';
 import { TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
@@ -30,7 +28,11 @@ export class OceanicCloudStack extends cdk.Stack {
         const api = new RestApi(this, "oceanic-api", {
             deployOptions: {
                 stageName: "v1"
-            }
+            },
+            domainName: (props?.domainName && props.certArn) ? {
+                domainName: props.domainName,
+                certificate: Certificate.fromCertificateArn(this, "cert-arn", props.certArn)
+            } : undefined
         });
         // User pool definition
         const userPool = new UserPool(this, "oceanic-users", {
@@ -91,24 +93,6 @@ export class OceanicCloudStack extends cdk.Stack {
             partitionKey: { name: "user", type: cdk.aws_dynamodb.AttributeType.STRING },
             sortKey: { name: "dataType", type: cdk.aws_dynamodb.AttributeType.STRING },
         });
-
-        // Define cloudfront distro
-        let certificate: ICertificate | undefined;
-        if (props?.certArn) {
-            certificate = Certificate.fromCertificateArn(this, "cert-arn", props?.certArn);
-        }
-        const cdn = new Distribution(this, "oceanic-distro", {
-            defaultBehavior: {
-                origin: new RestApiOrigin(api),
-                allowedMethods: AllowedMethods.ALLOW_ALL,
-                cachePolicy: CachePolicy.CACHING_DISABLED
-            },
-            domainNames: props?.domainName ? [props.domainName] : undefined,
-            certificate: certificate,
-            enabled: true,
-            priceClass: PriceClass.PRICE_CLASS_100
-        });
-        new cdk.CfnOutput(this, "cloudfront-domain", { value: `https://${cdn.distributionDomainName}` })
 
         // Test endpoint
         const testFunction = new NodejsFunction(this, "test-function", {
