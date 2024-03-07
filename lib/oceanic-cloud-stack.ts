@@ -75,6 +75,10 @@ export class OceanicCloudStack extends cdk.Stack {
                 emailBody: "Thanks for creating an account! {##Verify Email##}",
                 emailStyle: VerificationEmailStyle.LINK,
                 smsMessage: "Thanks for creating an Oceanic account! Your verificatio code is {####}"
+            },
+            deviceTracking: {
+                challengeRequiredOnNewDevice: true,
+                deviceOnlyRememberedOnUserPrompt: true
             }
         });
         new cdk.CfnOutput(this, "user-pool", { value: `${userPool.userPoolId}` });
