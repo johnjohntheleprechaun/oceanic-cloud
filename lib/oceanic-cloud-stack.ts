@@ -45,6 +45,10 @@ export class OceanicCloudStack extends cdk.Stack {
                 sms: true,
                 otp: true
             },
+            autoVerify: {
+                email: true,
+                phone: true
+            },
             passwordPolicy: {
                 minLength: 8,
                 requireLowercase: true,
