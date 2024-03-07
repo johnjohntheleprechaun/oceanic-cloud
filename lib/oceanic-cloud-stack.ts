@@ -1,9 +1,11 @@
 import * as cdk from 'aws-cdk-lib';
-import { IdentitySource, LambdaIntegration, RequestAuthorizer, RestApi } from 'aws-cdk-lib/aws-apigateway';
+import { CognitoUserPoolsAuthorizer, IdentitySource, LambdaIntegration, RequestAuthorizer, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import { Certificate, ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { AllowedMethods, CachePolicy, Distribution, OriginAccessIdentity, PriceClass } from 'aws-cdk-lib/aws-cloudfront';
 import { RestApiOrigin, S3Origin } from 'aws-cdk-lib/aws-cloudfront-origins';
+import { AccountRecovery, Mfa, UserPool, UserPoolEmail, VerificationEmailStyle } from 'aws-cdk-lib/aws-cognito';
 import { TableV2 } from 'aws-cdk-lib/aws-dynamodb';
+import { ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
@@ -32,11 +34,55 @@ export class OceanicCloudStack extends cdk.Stack {
 
         // Define non-lambda resources
         const api = new RestApi(this, "oceanic-api", {
-            restApiName: `oceanic-${props?.isProd ? "prod" : "test"}-api`,
             deployOptions: {
                 stageName: "v1"
             }
         });
+        // User pool definition
+        const userPool = new UserPool(this, "users", {
+            deletionProtection: props?.isProd,
+            accountRecovery: AccountRecovery.EMAIL_ONLY,
+            email: UserPoolEmail.withCognito(),
+            mfa: Mfa.REQUIRED,
+            mfaSecondFactor: {
+                sms: true,
+                otp: true
+            },
+            passwordPolicy: {
+                minLength: 8,
+                requireLowercase: true,
+                requireUppercase: true,
+                requireDigits: true,
+                requireSymbols: true,
+                tempPasswordValidity: cdk.Duration.days(1)
+            },
+            selfSignUpEnabled: false,
+            signInAliases: {
+                email: true,
+                preferredUsername: true,
+                username: true
+            },
+            standardAttributes: {
+                email: {
+                    required: true,
+                    mutable: true
+                }
+            },
+            userInvitation: {
+                emailSubject: "Invitation to join Oceanic",
+                emailBody: "Hello {username}, welcome to Oceanic! Your temporary password is {####}",
+                smsMessage: "Hello {username}, welcome to Oceanic! Your temporary password is {####}"
+            },
+            userVerification: {
+                emailSubject: "Verify your email for Oceanic",
+                emailBody: "Thanks for creating an account! {##Verify Email##}",
+                emailStyle: VerificationEmailStyle.LINK,
+                smsMessage: "Thanks for creating an Oceanic account! Your verificatio code is {####}"
+            }
+        });
+        new cdk.CfnOutput(this, "user-pool", { value: `${userPool.userPoolId}` })
+
+        // Storage resources
         const userDocuments = new Bucket(this, "user-documents", {
             bucketName: bucketName,
             removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY
