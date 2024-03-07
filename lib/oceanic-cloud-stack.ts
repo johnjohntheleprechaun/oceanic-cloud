@@ -1,11 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
-import { CognitoUserPoolsAuthorizer, IdentitySource, LambdaIntegration, RequestAuthorizer, RestApi } from 'aws-cdk-lib/aws-apigateway';
+import { CognitoUserPoolsAuthorizer, LambdaIntegration, RestApi } from 'aws-cdk-lib/aws-apigateway';
 import { Certificate, ICertificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { AllowedMethods, CachePolicy, Distribution, OriginAccessIdentity, PriceClass } from 'aws-cdk-lib/aws-cloudfront';
 import { RestApiOrigin, S3Origin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import { AccountRecovery, Mfa, UserPool, UserPoolEmail, VerificationEmailStyle } from 'aws-cdk-lib/aws-cognito';
 import { TableV2 } from 'aws-cdk-lib/aws-dynamodb';
-import { ManagedPolicy, Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
@@ -26,13 +25,8 @@ interface OceanicStackProps extends cdk.StackProps {
 export class OceanicCloudStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: OceanicStackProps) {
         super(scope, id, props);
-        
-        const dynamoName = `oceanic-${props?.isProd ? "prod" : "test"}-db`;
-        const bucketName = `oceanic-${props?.isProd ? "prod" : "test"}-documents`;
-        console.log(props?.isProd);
-        console.log(`Table name: ${dynamoName}\nBucket name: ${bucketName}`);
 
-        // Define non-lambda resources
+        // API definition
         const api = new RestApi(this, "oceanic-api", {
             deployOptions: {
                 stageName: "v1"
@@ -82,13 +76,16 @@ export class OceanicCloudStack extends cdk.Stack {
         });
         new cdk.CfnOutput(this, "user-pool", { value: `${userPool.userPoolId}` })
 
+        // Add API authorizer
+        const authorizer = new CognitoUserPoolsAuthorizer(this, "cognito-authorizer", {
+            cognitoUserPools: [ userPool ]
+        });
+
         // Storage resources
-        const userDocuments = new Bucket(this, "user-documents", {
-            bucketName: bucketName,
+        const documentBucket = new Bucket(this, "user-documents", {
             removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY
         });
-        const oceanicDB = new TableV2(this, "oceanic-db", {
-            tableName: dynamoName,
+        const dynamoTable = new TableV2(this, "oceanic-db", {
             removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
             partitionKey: { name: "user", type: cdk.aws_dynamodb.AttributeType.STRING },
             sortKey: { name: "dataType", type: cdk.aws_dynamodb.AttributeType.STRING },
@@ -99,22 +96,11 @@ export class OceanicCloudStack extends cdk.Stack {
         if (props?.certArn) {
             certificate = Certificate.fromCertificateArn(this, "cert-arn", props?.certArn);
         }
-        const accessIdentity = new OriginAccessIdentity(this, "s3-access-identity");
-        userDocuments.grantReadWrite(accessIdentity);
         const cdn = new Distribution(this, "oceanic-distro", {
             defaultBehavior: {
                 origin: new RestApiOrigin(api),
                 allowedMethods: AllowedMethods.ALLOW_ALL,
                 cachePolicy: CachePolicy.CACHING_DISABLED
-            },
-            additionalBehaviors: {
-                "documents/*": {
-                    origin: new S3Origin(userDocuments, {
-                        originPath: "/",
-                        originAccessIdentity: accessIdentity
-                    }),
-                    cachePolicy: CachePolicy.CACHING_DISABLED
-                }
             },
             domainNames: props?.domainName ? [props.domainName] : undefined,
             certificate: certificate,
@@ -123,37 +109,12 @@ export class OceanicCloudStack extends cdk.Stack {
         });
         new cdk.CfnOutput(this, "cloudfront-domain", { value: `https://${cdn.distributionDomainName}` })
 
-        // Add API authorizer
-        const authFunction = new NodejsFunction(this, "auth-function", {
-            runtime: lambdaDefaults.runtime,
-            architecture: lambdaDefaults.architecture,
-            entry: path.join(lambdaDefaults.directory, "authorizer.ts"),
-            environment: { "DYNAMO_TABLE": dynamoName }
-        });
-        const authorizer = new RequestAuthorizer(this, "authorizer", {
-            handler: authFunction,
-            identitySources: [IdentitySource.header("Authorization")]
-        });
-
-        // Signup endpoint
-        const signupFunction = new NodejsFunction(this, "signup-function", {
-            runtime: lambdaDefaults.runtime,
-            architecture: lambdaDefaults.architecture,
-            entry: path.join(lambdaDefaults.directory, "signup.ts"),
-            timeout: cdk.Duration.minutes(1),
-            environment: { "DYNAMO_TABLE": dynamoName }
-        });
-        oceanicDB.grant(signupFunction, "dynamodb:PutItem");
-        const signupIntegration = new LambdaIntegration(signupFunction)
-        api.root.addResource("signup")
-            .addMethod("POST", signupIntegration);
-
         // Test endpoint
         const testFunction = new NodejsFunction(this, "test-function", {
             runtime: lambdaDefaults.runtime,
             architecture: lambdaDefaults.architecture,
             entry: path.join(lambdaDefaults.directory, "test.ts"),
-            environment: { DYNAMO_TABLE: dynamoName, BUCKET: bucketName }
+            environment: { DYNAMO_TABLE: dynamoTable.tableName, BUCKET: documentBucket.bucketName }
         });
         const testIntegration = new LambdaIntegration(testFunction);
         api.root.addResource("test")
