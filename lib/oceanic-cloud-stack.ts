@@ -33,8 +33,9 @@ export class OceanicCloudStack extends cdk.Stack {
             }
         });
         // User pool definition
-        const userPool = new UserPool(this, "users", {
+        const userPool = new UserPool(this, "oceanic-users", {
             deletionProtection: props?.isProd,
+            removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
             accountRecovery: AccountRecovery.EMAIL_ONLY,
             email: UserPoolEmail.withCognito(),
             mfa: Mfa.REQUIRED,
@@ -74,7 +75,7 @@ export class OceanicCloudStack extends cdk.Stack {
                 smsMessage: "Thanks for creating an Oceanic account! Your verificatio code is {####}"
             }
         });
-        new cdk.CfnOutput(this, "user-pool", { value: `${userPool.userPoolId}` })
+        new cdk.CfnOutput(this, "user-pool", { value: `${userPool.userPoolId}` });
 
         // Add API authorizer
         const authorizer = new CognitoUserPoolsAuthorizer(this, "cognito-authorizer", {
