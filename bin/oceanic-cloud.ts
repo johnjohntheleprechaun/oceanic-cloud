@@ -2,10 +2,21 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { OceanicCloudStack } from '../lib/oceanic-cloud-stack';
-import {  readFileSync } from 'fs';
+import {  existsSync, readFileSync } from 'fs';
 
-const configFile = readFileSync("config.json");
-const config = JSON.parse(configFile.toString());
+let config = {
+    prodProps: {
+        isProd: true
+    },
+    testProps: {
+        isProd: false
+    }
+};
+if (existsSync("config.json")) {
+    const configFile = readFileSync("config.json");
+    config = JSON.parse(configFile.toString());
+}
+
 console.log(config);
 
 const app = new cdk.App();
