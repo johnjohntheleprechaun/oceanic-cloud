@@ -8,6 +8,7 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 import path = require('path');
+import { OceanicUserPool } from './user-pool';
 
 const lambdaDefaults = {
     runtime: Runtime.NODEJS_20_X,
@@ -21,8 +22,21 @@ interface OceanicStackProps extends cdk.StackProps {
     certArn?: string
 }
 export class OceanicCloudStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, props?: OceanicStackProps) {
+    constructor(scope: Construct, id: string, props: OceanicStackProps) {
         super(scope, id, props);
+
+        // Storage resources
+        const documentBucket = new Bucket(this, "user-documents", {
+            removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY
+        });
+        const dynamoTable = new TableV2(this, "oceanic-db", {
+            removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+            partitionKey: { name: "user", type: cdk.aws_dynamodb.AttributeType.STRING },
+            sortKey: { name: "dataType", type: cdk.aws_dynamodb.AttributeType.STRING },
+        });
+
+        // User pool definition
+        const cognito = new OceanicUserPool(this, "oceanic-users", { isProd: props.isProd });
 
         // API definition
         const api = new RestApi(this, "oceanic-api", {
@@ -34,72 +48,8 @@ export class OceanicCloudStack extends cdk.Stack {
                 certificate: Certificate.fromCertificateArn(this, "cert-arn", props.certArn)
             } : undefined
         });
-        // User pool definition
-        const userPool = new UserPool(this, "oceanic-users", {
-            deletionProtection: props?.isProd,
-            removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
-            accountRecovery: AccountRecovery.EMAIL_ONLY,
-            email: UserPoolEmail.withCognito(),
-            mfa: Mfa.REQUIRED,
-            mfaSecondFactor: {
-                sms: true,
-                otp: true
-            },
-            autoVerify: {
-                email: true,
-                phone: true
-            },
-            passwordPolicy: {
-                minLength: 8,
-                requireLowercase: true,
-                requireUppercase: true,
-                requireDigits: true,
-                requireSymbols: true,
-                tempPasswordValidity: cdk.Duration.days(1)
-            },
-            selfSignUpEnabled: false,
-            signInAliases: {
-                email: true,
-                preferredUsername: true,
-                username: true
-            },
-            standardAttributes: {
-                email: {
-                    required: true,
-                    mutable: true
-                }
-            },
-            userInvitation: {
-                emailSubject: "Invitation to join Oceanic",
-                emailBody: "Hello {username}, welcome to Oceanic! Your temporary password is {####}",
-                smsMessage: "Hello {username}, welcome to Oceanic! Your temporary password is {####}"
-            },
-            userVerification: {
-                emailSubject: "Verify your email for Oceanic",
-                emailBody: "Thanks for creating an account! {##Verify Email##}",
-                emailStyle: VerificationEmailStyle.LINK,
-                smsMessage: "Thanks for creating an Oceanic account! Your verificatio code is {####}"
-            },
-            deviceTracking: {
-                challengeRequiredOnNewDevice: true,
-                deviceOnlyRememberedOnUserPrompt: true
-            }
-        });
-        new cdk.CfnOutput(this, "user-pool", { value: `${userPool.userPoolId}` });
-
-        // Add API authorizer
         const authorizer = new CognitoUserPoolsAuthorizer(this, "cognito-authorizer", {
-            cognitoUserPools: [ userPool ]
-        });
-
-        // Storage resources
-        const documentBucket = new Bucket(this, "user-documents", {
-            removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY
-        });
-        const dynamoTable = new TableV2(this, "oceanic-db", {
-            removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
-            partitionKey: { name: "user", type: cdk.aws_dynamodb.AttributeType.STRING },
-            sortKey: { name: "dataType", type: cdk.aws_dynamodb.AttributeType.STRING },
+            cognitoUserPools: [ cognito.userPool ]
         });
 
         // Test endpoint
