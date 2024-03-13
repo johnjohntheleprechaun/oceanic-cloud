@@ -1,27 +1,23 @@
 {
     "type": "object",
     "properties": {
-        "prodProps": {
-            "type": "object",
-            "properties": {
-                "certArn": {
-                    "type": "string"
-                },
-                "domainName": {
-                    "type": "string"
-                }
-            }
+        "domainName": {
+            "type": "string",
+            "description": "The domain name to put API gateway behind."
         },
-        "testProps": {
-            "type": "object",
-            "properties": {
-                "certArn": {
-                    "type": "string"
-                },
-                "domainName": {
-                    "type": "string"
-                }
-            }
+        "certArn": {
+            "type": "string",
+            "description": "The AWS certificate for `domainName`"
+        },
+        "oAuthCallbacks": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "An array of authorized callback URLs for cognito oAuth."
+        },
+        "signoutURLs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "An array of allowed signout URLs for Cognito to redirect to after a signout."
         }
     }
 }
