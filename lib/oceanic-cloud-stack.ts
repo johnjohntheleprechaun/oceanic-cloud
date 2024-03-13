@@ -36,7 +36,7 @@ export class OceanicCloudStack extends cdk.Stack {
         });
 
         // User pool definition
-        const cognito = new OceanicUserPool(this, "oceanic-users", { isProd: props.isProd });
+        const cognito = new OceanicUserPool(this, "oceanic-users", { isProd: props.isProd, dynamoTable: dynamoTable, s3Bucket: documentBucket });
 
         // API definition
         const api = new RestApi(this, "oceanic-api", {
