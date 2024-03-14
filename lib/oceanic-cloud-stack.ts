@@ -16,10 +16,12 @@ const lambdaDefaults = {
     directory: path.join(__dirname, "functions")
 }
 
-interface OceanicStackProps extends cdk.StackProps {
+export interface OceanicStackProps extends cdk.StackProps {
     isProd: boolean
     domainName?: string
     certArn?: string
+    oAuthCallbacks: string[]
+    logoutUrls: string[]
 }
 export class OceanicCloudStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: OceanicStackProps) {
@@ -36,7 +38,13 @@ export class OceanicCloudStack extends cdk.Stack {
         });
 
         // User pool definition
-        const cognito = new OceanicUserPool(this, "oceanic-users", { isProd: props.isProd, dynamoTable: dynamoTable, s3Bucket: documentBucket });
+        const cognito = new OceanicUserPool(this, "oceanic-users", {
+            isProd: props.isProd,
+            callbackUrls: props.oAuthCallbacks,
+            logoutUrls: props.logoutUrls,
+            dynamoTable: dynamoTable,
+            s3Bucket: documentBucket
+        });
 
         // API definition
         const api = new RestApi(this, "oceanic-api", {

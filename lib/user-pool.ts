@@ -1,7 +1,7 @@
 import { CfnOutput, Duration, RemovalPolicy } from "aws-cdk-lib";
-import { AccountRecovery, CfnIdentityPool, CfnUserPoolGroup, Mfa, StringAttribute, UserPool, UserPoolEmail, VerificationEmailStyle } from "aws-cdk-lib/aws-cognito";
+import { AccountRecovery, CfnIdentityPool, CfnUserPoolGroup, ClientAttributes, Mfa, StringAttribute, UserPool, UserPoolClient, UserPoolEmail, VerificationEmailStyle } from "aws-cdk-lib/aws-cognito";
 import { TableV2 } from "aws-cdk-lib/aws-dynamodb";
-import { Effect, FederatedPrincipal, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
+import { Effect, FederatedPrincipal, PolicyDocument, PolicyStatement, Role } from "aws-cdk-lib/aws-iam";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 
@@ -9,17 +9,22 @@ interface OceanicUserPoolProps {
     isProd: boolean;
     dynamoTable: TableV2;
     s3Bucket: Bucket;
+    logoutUrls: string[];
+    callbackUrls: string[];
 }
 
 export class OceanicUserPool extends Construct {
     public userPool: UserPool;
     public groups: CfnUserPoolGroup[];
     public identityPool: CfnIdentityPool;
+    public clients: UserPoolClient[];
     private isProd: boolean;
+
     constructor (scope: Construct, id: string, props: OceanicUserPoolProps) {
         super(scope, id);
         this.isProd = props.isProd;
-        this.userPool = this.defineUserPool();
+        this.clients = [];
+        this.userPool = this.defineUserPool(props.callbackUrls, props.logoutUrls);
         this.identityPool = this.defineIdentityPool();
         this.createGroups(this.userPool, props.dynamoTable, props.s3Bucket);
         new CfnOutput(this, "user-pool", { value: `${this.userPool.userPoolId}` });
@@ -96,12 +101,20 @@ export class OceanicUserPool extends Construct {
 
     private defineIdentityPool(): CfnIdentityPool {
         return new CfnIdentityPool(this, "oceanic-identity-pool", {
-            allowUnauthenticatedIdentities: false
+            allowUnauthenticatedIdentities: false,
+            allowClassicFlow: false,
+            
+            cognitoIdentityProviders: this.clients.map(client => ({
+                clientId: client.userPoolClientId,
+                providerName: this.userPool.userPoolProviderName,
+                serverSideTokenCheck: true
+            }))
+            
         })
     }
 
-    private defineUserPool(): UserPool {
-        return new UserPool(this, "oceanic-user-pool", {
+    private defineUserPool(callbackUrls: string[], logoutUrls: string[]): UserPool {
+        const pool = new UserPool(this, "oceanic-user-pool", {
             deletionProtection: this.isProd,
             removalPolicy: this.isProd ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
             accountRecovery: AccountRecovery.EMAIL_ONLY,
@@ -133,6 +146,10 @@ export class OceanicUserPool extends Construct {
                 email: {
                     required: true,
                     mutable: true
+                },
+                preferredUsername: {
+                    required: false,
+                    mutable: true
                 }
             },
             customAttributes: {
@@ -154,5 +171,37 @@ export class OceanicUserPool extends Construct {
                 deviceOnlyRememberedOnUserPrompt: true
             }
         });
+
+        const standardAttributes = new ClientAttributes().withStandardAttributes({
+            preferredUsername: true,
+            nickname: true,
+            email: true,
+            phoneNumber: true
+        });
+
+        
+        const webClient = pool.addClient("web client", {
+            accessTokenValidity: Duration.hours(1),
+            idTokenValidity: Duration.hours(1),
+            refreshTokenValidity: Duration.days(1),
+            authFlows: {
+                userPassword: true,
+                userSrp: true
+            },
+            oAuth: {
+                flows: {
+                    authorizationCodeGrant: true
+                },
+                callbackUrls,
+                logoutUrls
+            },
+            enableTokenRevocation: true,
+            generateSecret: false,
+            preventUserExistenceErrors: true,
+            writeAttributes: standardAttributes
+        });
+
+        this.clients = [ webClient ];
+        return pool;
     }
 }
