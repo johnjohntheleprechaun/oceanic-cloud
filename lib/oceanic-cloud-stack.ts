@@ -29,7 +29,7 @@ export class OceanicCloudStack extends cdk.Stack {
         super(scope, id, props);
 
         // Storage resources
-        const documents = new OceanicDocumentBucket(this, "oceanic-documents", {
+        const documents = new OceanicDocumentBucket(this, "oceanic-bucket", {
             isProd: props.isProd
         })
         const dynamoTable = new TableV2(this, "oceanic-db", {
