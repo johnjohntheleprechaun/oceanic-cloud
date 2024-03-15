@@ -9,6 +9,7 @@ import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 import path = require('path');
 import { OceanicUserPool } from './user-pool';
+import { OceanicDocumentBucket } from './document-bucket';
 
 const lambdaDefaults = {
     runtime: Runtime.NODEJS_20_X,
@@ -28,9 +29,9 @@ export class OceanicCloudStack extends cdk.Stack {
         super(scope, id, props);
 
         // Storage resources
-        const documentBucket = new Bucket(this, "user-documents", {
-            removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY
-        });
+        const documents = new OceanicDocumentBucket(this, "oceanic-documents", {
+            isProd: props.isProd
+        })
         const dynamoTable = new TableV2(this, "oceanic-db", {
             removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
             partitionKey: { name: "user", type: cdk.aws_dynamodb.AttributeType.STRING },
@@ -43,7 +44,7 @@ export class OceanicCloudStack extends cdk.Stack {
             callbackUrls: props.oAuthCallbacks,
             logoutUrls: props.logoutUrls,
             dynamoTable: dynamoTable,
-            s3Bucket: documentBucket
+            s3Bucket: documents.bucket
         });
 
         // API definition
@@ -65,7 +66,7 @@ export class OceanicCloudStack extends cdk.Stack {
             runtime: lambdaDefaults.runtime,
             architecture: lambdaDefaults.architecture,
             entry: path.join(lambdaDefaults.directory, "test.ts"),
-            environment: { DYNAMO_TABLE: dynamoTable.tableName, BUCKET: documentBucket.bucketName }
+            environment: { DYNAMO_TABLE: dynamoTable.tableName, BUCKET: documents.bucket.bucketName }
         });
         const testIntegration = new LambdaIntegration(testFunction);
         api.root.addResource("test")
