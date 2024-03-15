@@ -14,7 +14,8 @@ export class OceanicDocumentBucket extends Construct {
             removalPolicy: props?.isProd ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
             autoDeleteObjects: !props.isProd,
             enforceSSL: true,
-            lifecycleRules: this.defineLifecycleRules()
+            lifecycleRules: this.defineLifecycleRules(),
+            versioned: true
         });
     }
 
