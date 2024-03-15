@@ -78,23 +78,34 @@ export class OceanicUserPool extends Construct {
                 })
             ]
         });
-        
+        const idPoolPrincipal = new FederatedPrincipal("cognito-identity.amazonaws.com", {
+            "StringEquals": { "${cognito-identity.amazonaws.com:aud}": this.identityPool.ref },
+            "ForAnyValue:StringLike": { "${cognito-identity.amazonaws.com:aud}": "authenticated" }
+        }, "sts:AssumeRoleWithWebIdentity");
         // paid user
         const paidRole = new Role(this, "paid-role", {
-            assumedBy: new FederatedPrincipal("cognito-identity.amazonaws.com", {
-                "StringEquals": { "${cognito-identity.amazonaws.com:aud}": this.identityPool.ref },
-                "ForAnyValue:StringLike": { "${cognito-identity.amazonaws.com:aud}": "authenticated" }
-            }, "sts:AssumeRoleWithWebIdentity"),
+            assumedBy: idPoolPrincipal,
             inlinePolicies: {
                 readData,
                 writeData
             }
         });
-        const tierOne = new CfnUserPoolGroup(this, "paid-group", {
+        const expiredRole = new Role(this, "expired-role", {
+            assumedBy: idPoolPrincipal,
+            inlinePolicies: {
+                readData
+            }
+        });
+        const paidGroup = new CfnUserPoolGroup(this, "paid-group", {
             userPoolId: userPool.userPoolId,
             roleArn: paidRole.roleArn
         });
-        groups.push(tierOne);
+        const expiredGroup = new CfnUserPoolGroup(this, "expired-group", {
+            userPoolId: userPool.userPoolId,
+            roleArn: expiredRole.roleArn
+        });
+
+        this.groups = [ paidGroup, expiredGroup ];
 
         return groups;
     }
