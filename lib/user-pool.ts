@@ -130,7 +130,7 @@ export class OceanicUserPool extends Construct {
             removalPolicy: this.isProd ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
             accountRecovery: AccountRecovery.EMAIL_ONLY,
             email: UserPoolEmail.withCognito(),
-            mfa: Mfa.REQUIRED,
+            mfa: Mfa.OPTIONAL, // So this is some BS, but if MFA is required then when signing in for the first time you can't get tokens after setting it up (or at least it's not documented)
             mfaSecondFactor: {
                 sms: true,
                 otp: true
