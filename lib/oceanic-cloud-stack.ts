@@ -68,11 +68,21 @@ export class OceanicCloudStack extends cdk.Stack {
             entry: path.join(lambdaDefaults.directory, "test.ts"),
             environment: { DYNAMO_TABLE: dynamoTable.tableName, BUCKET: documents.bucket.bucketName }
         });
+        const resourceListFunction = new NodejsFunction(this, "resource-list-function", {
+            runtime: lambdaDefaults.runtime,
+            architecture: lambdaDefaults.architecture,
+            entry: path.join(lambdaDefaults.directory, "resource-list.ts"),
+            environment: { DYNAMO_TABLE: dynamoTable.tableName, BUCKET: documents.bucket.bucketName, IDENTITY_POOL_ID: cognito.identityPool.attrId, USER_POOL_ID: cognito.userPool.userPoolProviderUrl }
+        });
+        const resourceListIntegration = new LambdaIntegration(resourceListFunction);
         const testIntegration = new LambdaIntegration(testFunction);
         api.root.addResource("test")
             .addMethod("GET", testIntegration);
         
         api.root.addResource("test2")
         .addMethod("GET", testIntegration, { authorizer: authorizer });
+
+        api.root.addResource("resources")
+        .addMethod("GET", resourceListIntegration);
     }
 }

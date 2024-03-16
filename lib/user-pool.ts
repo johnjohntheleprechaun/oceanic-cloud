@@ -120,7 +120,6 @@ export class OceanicUserPool extends Construct {
                 providerName: this.userPool.userPoolProviderName,
                 serverSideTokenCheck: true
             }))
-            
         })
     }
 
@@ -198,13 +197,6 @@ export class OceanicUserPool extends Construct {
             authFlows: {
                 userPassword: true,
                 userSrp: true
-            },
-            oAuth: {
-                flows: {
-                    authorizationCodeGrant: true
-                },
-                callbackUrls,
-                logoutUrls
             },
             enableTokenRevocation: true,
             generateSecret: false,
