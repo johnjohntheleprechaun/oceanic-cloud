@@ -42,7 +42,7 @@ export class OceanicUserPool extends Construct {
                     actions: [ "dynamodb:Query", "dynamodb:GetItem" ],
                     resources: [ dynamoTable.tableArn ],
                     conditions: {
-                        "StringEquals": { "dynamodb:LeadingKeys": "${cognito-identity.amazonaws.com:sub}" }
+                        "ForAllValues:StringEquals": { "dynamodb:LeadingKeys": [ "${cognito-identity.amazonaws.com:sub}" ] }
                     },
                     effect: Effect.ALLOW
                 }),
@@ -55,7 +55,7 @@ export class OceanicUserPool extends Construct {
                     actions: [ "s3:ListBucket", "s3:ListBucketVersions" ],
                     resources: [ s3Bucket.bucketArn ],
                     conditions: {
-                        "ForAllValues:StringLike": { "s3:prefix": "${cognito-identity.amazonaws.com:sub}/*" }
+                        "StringLike": { "s3:prefix": "${cognito-identity.amazonaws.com:sub}/*" }
                     },
                     effect: Effect.ALLOW
                 })
@@ -67,7 +67,7 @@ export class OceanicUserPool extends Construct {
                     actions: [ "dynamodb:PutItem" ],
                     resources: [ dynamoTable.tableArn ],
                     conditions: {
-                        "StringEquals": { "dynamodb:LeadingKeys": "${cognito-identity.amazonaws.com:sub}" }
+                        "ForAllValues:StringEquals": { "dynamodb:LeadingKeys": [ "${cognito-identity.amazonaws.com:sub}" ] }
                     },
                     effect: Effect.ALLOW
                 }),
