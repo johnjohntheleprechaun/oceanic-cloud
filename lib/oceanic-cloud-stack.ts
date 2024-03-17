@@ -72,7 +72,12 @@ export class OceanicCloudStack extends cdk.Stack {
             runtime: lambdaDefaults.runtime,
             architecture: lambdaDefaults.architecture,
             entry: path.join(lambdaDefaults.directory, "resource-list.ts"),
-            environment: { DYNAMO_TABLE: dynamoTable.tableName, BUCKET: documents.bucket.bucketName, IDENTITY_POOL_ID: cognito.identityPool.attrId, USER_POOL_ID: cognito.userPool.userPoolProviderUrl }
+            environment: {
+                DYNAMO_TABLE: dynamoTable.tableName,
+                BUCKET: documents.bucket.bucketName,
+                IDENTITY_POOL_ID: cognito.identityPool.attrId,
+                USER_POOL_ID: cognito.userPool.userPoolProviderName
+            }
         });
         const resourceListIntegration = new LambdaIntegration(resourceListFunction);
         const testIntegration = new LambdaIntegration(testFunction);
