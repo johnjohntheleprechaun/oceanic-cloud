@@ -79,8 +79,8 @@ export class OceanicUserPool extends Construct {
             ]
         });
         const idPoolPrincipal = new FederatedPrincipal("cognito-identity.amazonaws.com", {
-            "StringEquals": { "${cognito-identity.amazonaws.com:aud}": this.identityPool.ref },
-            "ForAnyValue:StringLike": { "${cognito-identity.amazonaws.com:aud}": "authenticated" }
+            "StringEquals": { "cognito-identity.amazonaws.com:aud": this.identityPool.ref },
+            "ForAnyValue:StringLike": { "cognito-identity.amazonaws.com:amr": "authenticated" }
         }, "sts:AssumeRoleWithWebIdentity");
         // paid user
         const paidRole = new Role(this, "paid-role", {
