@@ -1,5 +1,5 @@
 import { Duration, RemovalPolicy } from "aws-cdk-lib";
-import { Bucket, LifecycleRule } from "aws-cdk-lib/aws-s3";
+import { Bucket, HttpMethods, LifecycleRule } from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 
 export interface OceanicDocumentBucketProps {
@@ -15,7 +15,16 @@ export class OceanicDocumentBucket extends Construct {
             autoDeleteObjects: !props.isProd,
             enforceSSL: true,
             lifecycleRules: this.defineLifecycleRules(),
-            versioned: true
+            versioned: true,
+            cors: [{
+                allowedOrigins: [ "*" ],
+                allowedHeaders: [ "*" ],
+                allowedMethods: [
+                    HttpMethods.GET,
+                    HttpMethods.PUT,
+                    HttpMethods.DELETE
+                ]
+            }]
         });
     }
 
