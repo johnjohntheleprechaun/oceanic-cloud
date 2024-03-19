@@ -1,17 +1,13 @@
 import * as cdk from 'aws-cdk-lib';
-import { CognitoUserPoolsAuthorizer, LambdaIntegration, RestApi } from 'aws-cdk-lib/aws-apigateway';
-import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
-import { AccountRecovery, Mfa, UserPool, UserPoolEmail, VerificationEmailStyle } from 'aws-cdk-lib/aws-cognito';
 import { TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
-import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 import path = require('path');
 import { OceanicUserPool } from './user-pool';
 import { OceanicDocumentBucket } from './document-bucket';
+import { OceanicApi } from './rest-api';
 
-const lambdaDefaults = {
+export const lambdaDefaults = {
     runtime: Runtime.NODEJS_20_X,
     architecture: Architecture.ARM_64,
     directory: path.join(__dirname, "functions")
@@ -47,47 +43,13 @@ export class OceanicCloudStack extends cdk.Stack {
             s3Bucket: documents.bucket
         });
 
-        // API definition
-        const api = new RestApi(this, "oceanic-api", {
-            deployOptions: {
-                stageName: "v1"
-            },
-            domainName: (props?.domainName && props.certArn) ? {
-                domainName: props.domainName,
-                certificate: Certificate.fromCertificateArn(this, "cert-arn", props.certArn)
-            } : undefined
+        const api = new OceanicApi(this, "oceanic-api", {
+            isProd: props.isProd,
+            cognito,
+            documents,
+            database: dynamoTable,
+            domainName: props.domainName,
+            certArn: props.certArn
         });
-        const authorizer = new CognitoUserPoolsAuthorizer(this, "cognito-authorizer", {
-            cognitoUserPools: [ cognito.userPool ]
-        });
-
-        // Test endpoint
-        const testFunction = new NodejsFunction(this, "test-function", {
-            runtime: lambdaDefaults.runtime,
-            architecture: lambdaDefaults.architecture,
-            entry: path.join(lambdaDefaults.directory, "test.ts"),
-            environment: { DYNAMO_TABLE: dynamoTable.tableName, BUCKET: documents.bucket.bucketName }
-        });
-        const resourceListFunction = new NodejsFunction(this, "resource-list-function", {
-            runtime: lambdaDefaults.runtime,
-            architecture: lambdaDefaults.architecture,
-            entry: path.join(lambdaDefaults.directory, "resource-list.ts"),
-            environment: {
-                DYNAMO_TABLE: dynamoTable.tableName,
-                BUCKET: documents.bucket.bucketName,
-                IDENTITY_POOL_ID: cognito.identityPool.attrId,
-                USER_POOL_ID: cognito.userPool.userPoolProviderName
-            }
-        });
-        const resourceListIntegration = new LambdaIntegration(resourceListFunction);
-        const testIntegration = new LambdaIntegration(testFunction);
-        api.root.addResource("test")
-            .addMethod("GET", testIntegration);
-        
-        api.root.addResource("test2")
-        .addMethod("GET", testIntegration, { authorizer: authorizer });
-
-        api.root.addResource("resources")
-        .addMethod("GET", resourceListIntegration);
     }
 }
