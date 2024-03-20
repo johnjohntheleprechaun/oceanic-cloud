@@ -47,7 +47,8 @@ export class OceanicApi extends Construct {
             ...lambdaDefaults,
             entry: path.join(lambdaDefaults.directory, "register.ts"),
             environment: {
-                IDENTITY_POOL_ID: cognito.identityPool.attrId
+                IDENTITY_POOL_ID: cognito.identityPool.attrId,
+                USER_POOL_PROVIDER_NAME: cognito.userPool.userPoolProviderName
             }
         });
         const registerIntegration = new LambdaIntegration(registerFunction);
