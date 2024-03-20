@@ -7,6 +7,7 @@ import path = require("path");
 import { TableV2 } from "aws-cdk-lib/aws-dynamodb";
 import { OceanicDocumentBucket } from "./document-bucket";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
+import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 interface OceanicApiProps {
     isProd: boolean;
@@ -48,9 +49,16 @@ export class OceanicApi extends Construct {
             entry: path.join(lambdaDefaults.directory, "register.ts"),
             environment: {
                 IDENTITY_POOL_ID: cognito.identityPool.attrId,
-                USER_POOL_PROVIDER_NAME: cognito.userPool.userPoolProviderName
+                USER_POOL_PROVIDER_NAME: cognito.userPool.userPoolProviderName,
+                USER_POOL_ID: cognito.userPool.userPoolId
             }
         });
+        registerFunction.addToRolePolicy(new PolicyStatement({
+            actions: [
+                "cognito-idp:AdminUpdateUserAttributes"
+            ],
+            resources: [ cognito.userPool.userPoolArn ]
+        }));
         const registerIntegration = new LambdaIntegration(registerFunction);
         this.api.root.addResource("users")
         .addResource("register")

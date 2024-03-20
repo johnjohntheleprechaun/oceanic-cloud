@@ -163,7 +163,8 @@ export class OceanicUserPool extends Construct {
                 }
             },
             customAttributes: {
-                "tier": new StringAttribute({ mutable: true })
+                "tier": new StringAttribute({ mutable: true }),
+                "identityId": new StringAttribute({ mutable: true })
             },
             userInvitation: {
                 emailSubject: "Invitation to join Oceanic",
