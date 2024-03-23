@@ -194,7 +194,7 @@ export class OceanicUserPool extends Construct {
         const webClient = pool.addClient("web client", {
             accessTokenValidity: Duration.hours(1),
             idTokenValidity: Duration.hours(1),
-            refreshTokenValidity: Duration.days(1),
+            refreshTokenValidity: Duration.days(30),
             authFlows: {
                 userPassword: true,
                 userSrp: true
