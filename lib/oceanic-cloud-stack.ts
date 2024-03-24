@@ -31,7 +31,7 @@ export class OceanicCloudStack extends cdk.Stack {
         const dynamoTable = new TableV2(this, "oceanic-db", {
             removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
             partitionKey: { name: "user", type: cdk.aws_dynamodb.AttributeType.STRING },
-            sortKey: { name: "dataType", type: cdk.aws_dynamodb.AttributeType.STRING },
+            sortKey: { name: "id", type: cdk.aws_dynamodb.AttributeType.STRING },
         });
 
         // User pool definition
