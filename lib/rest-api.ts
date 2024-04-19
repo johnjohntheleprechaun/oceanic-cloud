@@ -21,10 +21,12 @@ interface OceanicApiProps {
 export class OceanicApi extends Construct {
     api: RestApi;
     cognitoAuthorizer: CognitoUserPoolsAuthorizer;
+    apiVersion: string;
 
     constructor (scope: Construct, id: string, props: OceanicApiProps) {
         super(scope, id)
         // API definition
+        this.apiVersion = "0.1.0";
         this.api = new RestApi(this, "rest-api", {
             retainDeployments: props.isProd,
             restApiName: `Oceanic ${props.isProd ? "Prod" : "Test"}`,
@@ -81,6 +83,19 @@ export class OceanicApi extends Construct {
         const resourceListIntegration = new LambdaIntegration(resourceListFunction);
         this.api.root.addResource("resources")
         .addMethod("GET", resourceListIntegration);
+
+        // Ping
+        const pingFunction = new NodejsFunction(this, "ping-function", {
+            runtime: lambdaDefaults.runtime,
+            architecture: lambdaDefaults.architecture,
+            entry: path.join(lambdaDefaults.directory, "ping.ts"),
+            environment: {
+                API_VERSION: this.apiVersion
+            }
+        });
+        const pingIntegration = new LambdaIntegration(pingFunction);
+        this.api.root.addResource("ping")
+        .addMethod("GET", pingIntegration);
 
         this.defineRegisterEndpoint(cognito);
 
