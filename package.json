@@ -1,9 +1,6 @@
 {
   "name": "oceanic-cloud",
   "version": "0.1.0",
-  "bin": {
-    "oceanic-cloud": "bin/oceanic-cloud.js"
-  },
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
