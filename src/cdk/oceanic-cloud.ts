@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { OceanicCloudStack, OceanicStackProps } from '../lib/oceanic-cloud-stack';
+import { OceanicCloudStack, OceanicStackProps } from './oceanic-cloud-stack';
 import {  existsSync, readFileSync } from 'fs';
 
 let config: OceanicStackProps;
