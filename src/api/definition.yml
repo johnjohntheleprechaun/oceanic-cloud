@@ -5,8 +5,14 @@ info:
 paths:
   /test:
     get:
-      x-lambda-function: test.ts
+      x-lambda-entry: test.ts
       x-required-permissions: null
       responses:
         '200':
+          description: OK
+  /test2:
+    get:
+      x-lambda-entry: test.ts
+      responses:
+        "200":
           description: OK
