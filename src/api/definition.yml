@@ -46,6 +46,26 @@ paths:
           $ref: "#/components/responses/unauthorized"
         "403":
           description: The authenticated user doesn't match the `user` parameter. (You're only allowed to list your own documents)
+    post:
+      x-lambda-entry: document/create.ts
+      summary: Create a new document.
+      requestBody:
+        description: Metadata for the new document.
+        content:
+          application/json:
+            schema:
+              $ref: "schemas/document-create.json"
+      responses:
+        "200":
+          description: The document was created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "schemas/document.json"
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          description: "The authenticated user isn't allowed to create a document. This will happen if the authenticated user either doesn't match the `user` parameter, or they're no longer allowed write access on their account."
 
   /users/{user}/documents/{document}:
     get:
