@@ -1,0 +1,28 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "id": { "$ref": "uuid.json", "description": "If the new document was created while offline, you can (optionally) request a specific uuid for the document." },
+        "title": { "type": "string", "format": "base64", "description": "Optional. Should be encrypted with the document key, and encoded as a base64 string" },
+        "type": { "type": "string", "description": "The type of this document, used to determine which editor to use.", "pattern": "(?:messages-journal)|(?:document-journal)|(?:custom:.+)" },
+        "created": { "type": "number", "description": "If ommitted, it will be set to the upload time." },
+        "updated": { "type": "number", "description": "If ommitted, it will be set to the upload time." },
+        "documentKey": { "type": "string", "format": "base64", "description": "The wrapped document key, encoded as a base64 string." },
+        "attachments": {
+            "type": "array",
+            "description": "A list of all the attachments attached to this document.",
+            "items": {
+                "$ref": "attachment.json"
+            }
+        },
+        "authorizedUsers": {
+            "type": "array",
+            "description": "The uuids of all the users who are allowed to read this document. This does *not* include the owner.",
+            "items": { 
+                "id": { "$ref": "uuid.json" },
+                "key": { "type": "string", "format": "base64", "description": "The document key, wrapped with the user's public key, encoded as a base64 string." }
+            }
+        }
+    },
+    "required": [ "type", "documentKey" ]
+}

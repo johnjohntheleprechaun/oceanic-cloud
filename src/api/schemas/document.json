@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "owner": { "$ref": "uuid.json" },
+        "id": { "$ref": "uuid.json" },
+        "title": { "type": "string", "format": "base64", "description": "Encrypted with the document key, and encoded as a base64 string" },
+        "type": { "type": "string" },
+        "created": { "type": "number" },
+        "updated": { "type": "number" },
+        "documentKey": { "type": "string", "format": "base64" },
+        "signedUrl": { "type": "string", "format": "uri" },
+        "attachments": {
+            "type": "array",
+            "items": {
+                "$ref": "attachment.json"
+            }
+        },
+        "authorizedUsers": {
+            "type": "array",
+            "items": { "type": "string" }
+        }
+    }
+}
