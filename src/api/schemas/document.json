@@ -4,11 +4,11 @@
     "properties": {
         "owner": { "$ref": "uuid.json" },
         "id": { "$ref": "uuid.json" },
-        "title": { "type": "string", "format": "base64", "description": "Encrypted with the document key, and encoded as a base64 string" },
+        "title": { "contentMediaType": "application/octet-stream", "contentEncoding": "base64", "description": "Encrypted with the document key, and encoded as a base64 string" },
         "type": { "type": "string" },
         "created": { "type": "number" },
         "updated": { "type": "number" },
-        "documentKey": { "type": "string", "format": "base64" },
+        "documentKey": { "contentMediaType": "application/octet-stream", "contentEncoding": "base64" },
         "signedUrl": { "type": "string", "format": "uri" },
         "attachments": {
             "type": "array",
