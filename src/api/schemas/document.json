@@ -12,9 +12,7 @@
         "signedUrl": { "type": "string", "format": "uri" },
         "attachments": {
             "type": "array",
-            "items": {
-                "$ref": "attachment.json"
-            }
+            "items": { "$ref": "attachment.json" }
         },
         "authorizedUsers": {
             "type": "array",
