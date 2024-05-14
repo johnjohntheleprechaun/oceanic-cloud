@@ -91,3 +91,34 @@ paths:
           description: The authenticated user doesn't have access to this document
         "404":
           description: The document doesn't exist. This will only be returned if the authenticated user *would've* had access, had it existed. In other words, if the they're the same user as the one specified in the `user` parameter.
+    patch:
+      x-lambda-entry: document/update.ts
+      summary: Update document metadata.
+      parameters:
+        - $ref: "#/components/parameters/user"
+        - in: path
+          name: document
+          required: true
+          schema:
+            $ref: "schemas/uuid.json"
+      requestBody:
+        description: A JSON Patch document describing the changes to the metadata.
+        content:
+          application/json-patch+json:
+            schema:
+              type: array
+              items:
+                $ref: "schemas/json-patch.json"
+      responses:
+        "200":
+          description: The updated metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "schemas/document.json"
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          description: The authenticated user doesn't have access to this document
+        "404":
+          description: The document doesn't exist. This will only be returned if the authenticated user *would've* had access, had it existed. In other words, if the they're the same user as the one specified in the `user` parameter.
