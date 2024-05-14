@@ -30,7 +30,7 @@ paths:
   /users/{user}/documents:
     get:
       x-lambda-entry: document/list.ts
-      summary: List all the documents an authenticated user has access to.
+      summary: List documents.
       tags:
         - documents
       parameters:
@@ -74,7 +74,7 @@ paths:
   /users/{user}/documents/{document}:
     get:
       x-lambda-entry: document/get.ts
-      summary: Get the metadata for a specific document.
+      summary: Get document metadata.
       tags:
         - documents
       parameters:
