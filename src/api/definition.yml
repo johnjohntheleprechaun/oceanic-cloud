@@ -31,6 +31,8 @@ paths:
     get:
       x-lambda-entry: document/list.ts
       summary: List all the documents an authenticated user has access to.
+      tags:
+        - documents
       parameters:
         - $ref: "#/components/parameters/user"
       responses:
@@ -49,6 +51,8 @@ paths:
     post:
       x-lambda-entry: document/create.ts
       summary: Create a new document.
+      tags:
+        - documents
       requestBody:
         description: Metadata for the new document.
         content:
@@ -71,6 +75,8 @@ paths:
     get:
       x-lambda-entry: document/get.ts
       summary: Get the metadata for a specific document.
+      tags:
+        - documents
       parameters:
         - $ref: "#/components/parameters/user"
         - in: path
@@ -94,6 +100,8 @@ paths:
     patch:
       x-lambda-entry: document/update.ts
       summary: Update document metadata.
+      tags:
+        - documents
       parameters:
         - $ref: "#/components/parameters/user"
         - in: path
