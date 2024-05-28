@@ -26,6 +26,14 @@ paths:
       responses:
         '200':
           description: OK
+  
+  /login:
+    description: This endpoint will match the API docs for AWS Cognito user pools
+    post:
+      description: "This endpoint will match [AWS Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-userpools-api-reference.html)"
+      responses:
+        "200":
+          description: OK
 
   /users/{user}/documents:
     get:
