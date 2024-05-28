@@ -29,6 +29,7 @@ paths:
   
   /login:
     description: This endpoint will match the API docs for AWS Cognito user pools
+    x-generation-exclude: true
     post:
       description: "This endpoint will match [AWS Cognito](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-userpools-api-reference.html)\n\nPasswords should be hashed before being sent to the server. Use PBKDF2, 600000 iterations, with a salt of the username (utf-8 encoded)."
       responses:

@@ -51,7 +51,7 @@ export class OceanicApi extends Construct {
         this.documents = props.documents;
         this.cognito = props.cognito;
 
-        this.loadApiDefinition("src/api/definition.yml", "src/api/endpoints")
+        this.loadApiDefinition("src/api/definition.yml", "src/api/endpoints");
     }
 
     /**
@@ -66,6 +66,11 @@ export class OceanicApi extends Construct {
         const functions: { [key: string]: NodejsFunction } = {};
         for (const resourcePath in template.paths) {
             const resourceDefinition = template.paths[resourcePath];
+
+            if (resourceDefinition["x-generation-exclude"]) {
+                // don't add this path at all
+                continue;
+            }
             
             // Create the resource
             const pathParts = resourcePath.split("/")
