@@ -3,9 +3,9 @@ import { TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import path = require('path');
-import { OceanicUserPool } from './user-pool';
-import { OceanicDocumentBucket } from './document-bucket';
-import { OceanicApi } from './rest-api';
+import { OceanicUserPool } from './constructs/user-pool';
+import { OceanicDocumentBucket } from './constructs/document-bucket';
+import { OceanicApi } from './constructs/rest-api';
 
 export const lambdaDefaults = {
     runtime: Runtime.NODEJS_20_X,

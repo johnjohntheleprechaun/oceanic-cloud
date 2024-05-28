@@ -2,7 +2,7 @@ import { CognitoUserPoolsAuthorizer, Cors, LambdaIntegration, RestApi } from "aw
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { Construct } from "constructs";
 import { OceanicUserPool } from "./user-pool";
-import { lambdaDefaults } from "./oceanic-cloud-stack";
+import { lambdaDefaults } from "../oceanic-cloud-stack";
 import path = require("path");
 import { TableV2 } from "aws-cdk-lib/aws-dynamodb";
 import { OceanicDocumentBucket } from "./document-bucket";
