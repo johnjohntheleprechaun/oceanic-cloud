@@ -6,6 +6,7 @@ import path = require('path');
 import { OceanicUserPool } from './constructs/user-pool';
 import { OceanicDocumentBucket } from './constructs/document-bucket';
 import { OceanicApi } from './constructs/rest-api';
+import { OceanicDistribution } from './constructs/cloudfront';
 
 export const lambdaDefaults = {
     runtime: Runtime.NODEJS_20_X,
@@ -50,6 +51,13 @@ export class OceanicCloudStack extends cdk.Stack {
             database: dynamoTable,
             domainName: props.domainName,
             certArn: props.certArn
+        });
+
+        const cloudfront = new OceanicDistribution(this, "oceanic-distro", {
+            isProd: false,
+            restApi: api,
+            bucket: documents,
+            userPool: cognito,
         });
     }
 }

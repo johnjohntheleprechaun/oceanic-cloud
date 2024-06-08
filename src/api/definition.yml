@@ -27,7 +27,7 @@ paths:
         '200':
           description: OK
   
-  /login:
+  /auth:
     description: This endpoint will match the API docs for AWS Cognito user pools
     x-generation-exclude: true
     post:
