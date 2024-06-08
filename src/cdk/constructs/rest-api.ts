@@ -23,11 +23,11 @@ interface OceanicApiProps {
 
 export class OceanicApi extends Construct {
     api: RestApi;
-    cognitoAuthorizer: CognitoUserPoolsAuthorizer;
     apiVersion: string;
-    database: TableV2;
-    documents: OceanicDocumentBucket;
-    cognito: OceanicUserPool
+    private cognitoAuthorizer: CognitoUserPoolsAuthorizer;
+    private database: TableV2;
+    private documents: OceanicDocumentBucket;
+    private cognito: OceanicUserPool
 
     constructor (scope: Construct, id: string, props: OceanicApiProps) {
         super(scope, id)
