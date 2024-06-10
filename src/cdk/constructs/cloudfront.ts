@@ -2,14 +2,14 @@ import { AllowedMethods, CachePolicy, Distribution, OriginRequestPolicy, Respons
 import { Construct } from "constructs";
 import { OceanicApi } from "./rest-api";
 import { OceanicDocumentBucket } from "./document-bucket";
-import { HttpOrigin, RestApiOrigin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { HttpOrigin, RestApiOrigin, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
 import { OceanicUserPool } from "./user-pool";
 import { Stack } from "aws-cdk-lib";
 
 export interface OceanicDistributionProps {
     isProd: boolean;
     restApi: OceanicApi;
-    bucket: OceanicDocumentBucket;
+    storage: OceanicDocumentBucket;
     userPool: OceanicUserPool;
 }
 
@@ -30,6 +30,11 @@ export class OceanicDistribution extends Construct {
                     allowedMethods: AllowedMethods.ALLOW_ALL,
                     originRequestPolicy: OriginRequestPolicy.ALL_VIEWER,
                     responseHeadersPolicy: ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS
+                },
+                "/storage/*": {
+                    origin: new S3Origin(props.storage.bucket, {
+                        originAccessIdentity: props.storage.originAccessIdentity
+                    })
                 }
             }
         });

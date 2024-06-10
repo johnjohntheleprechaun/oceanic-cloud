@@ -1,4 +1,6 @@
 import { Duration, RemovalPolicy } from "aws-cdk-lib";
+import { OriginAccessIdentity } from "aws-cdk-lib/aws-cloudfront";
+import { CanonicalUserPrincipal, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Bucket, HttpMethods, LifecycleRule } from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 
@@ -8,8 +10,10 @@ export interface OceanicDocumentBucketProps {
 
 export class OceanicDocumentBucket extends Construct {
     bucket: Bucket;
+    originAccessIdentity: OriginAccessIdentity;
     constructor (scope: Construct, id: string, props: OceanicDocumentBucketProps) {
         super(scope, id);
+        this.originAccessIdentity = new OriginAccessIdentity(this, "Cloudfront-OAI");
         this.bucket = new Bucket(this, "user-documents", {
             removalPolicy: props?.isProd ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
             autoDeleteObjects: !props.isProd,
@@ -26,6 +30,11 @@ export class OceanicDocumentBucket extends Construct {
                 ]
             }]
         });
+        this.bucket.addToResourcePolicy(new PolicyStatement({
+            actions: [ "s3:GetObject", "s3:PutObject", "s3:DeleteObject" ],
+            resources: [ this.bucket.arnForObjects("*") ],
+            principals: [ new CanonicalUserPrincipal(this.originAccessIdentity.cloudFrontOriginAccessIdentityS3CanonicalUserId) ]
+        }));
     }
 
     private defineLifecycleRules(): LifecycleRule[] {

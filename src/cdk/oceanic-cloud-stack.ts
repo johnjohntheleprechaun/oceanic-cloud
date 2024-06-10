@@ -56,7 +56,7 @@ export class OceanicCloudStack extends cdk.Stack {
         const cloudfront = new OceanicDistribution(this, "oceanic-distro", {
             isProd: false,
             restApi: api,
-            bucket: documents,
+            storage: documents,
             userPool: cognito,
         });
     }
