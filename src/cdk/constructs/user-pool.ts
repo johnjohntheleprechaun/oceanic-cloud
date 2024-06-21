@@ -7,16 +7,12 @@ import { Construct } from "constructs";
 
 interface OceanicUserPoolProps {
     isProd: boolean;
-    dynamoTable: TableV2;
-    s3Bucket: Bucket;
     logoutUrls: string[];
     callbackUrls: string[];
 }
 
-export class OceanicUserPool extends Construct {
+export class OceanicUsers extends Construct {
     public userPool: UserPool;
-    public groups: CfnUserPoolGroup[];
-    public identityPool: CfnIdentityPool;
     public clients: UserPoolClient[];
     private isProd: boolean;
 
@@ -25,102 +21,13 @@ export class OceanicUserPool extends Construct {
         this.isProd = props.isProd;
         this.clients = [];
         this.userPool = this.defineUserPool(props.callbackUrls, props.logoutUrls);
-        this.identityPool = this.defineIdentityPool();
-        this.createGroups(this.userPool, props.dynamoTable, props.s3Bucket);
-        new CfnOutput(this, "user-pool", { value: `${this.userPool.userPoolId}` });
-    }
-
-    private createGroups(userPool: UserPool, dynamoTable: TableV2, s3Bucket: Bucket): CfnUserPoolGroup[] {
-        const groups: CfnUserPoolGroup[] = [];
-
-        // create policy docs
-        const userPrefixARN = s3Bucket.arnForObjects("${cognito-identity.amazonaws.com:sub}/*");
-        new CfnOutput(this, "userPrefix", { value: userPrefixARN });
-        const readData = new PolicyDocument({
-            statements: [
-                new PolicyStatement({
-                    actions: [ "dynamodb:Query", "dynamodb:GetItem" ],
-                    resources: [ dynamoTable.tableArn ],
-                    conditions: {
-                        "ForAllValues:StringEquals": { "dynamodb:LeadingKeys": [ "${cognito-identity.amazonaws.com:sub}" ] }
-                    },
-                    effect: Effect.ALLOW
-                }),
-                new PolicyStatement({
-                    actions: [ "s3:GetObject", "s3:GetObjectVersion" ],
-                    resources: [ s3Bucket.arnForObjects("${cognito-identity.amazonaws.com:sub}/*") ],
-                    effect: Effect.ALLOW
-                }),
-                new PolicyStatement({
-                    actions: [ "s3:ListBucket", "s3:ListBucketVersions" ],
-                    resources: [ s3Bucket.bucketArn ],
-                    conditions: {
-                        "StringLike": { "s3:prefix": "${cognito-identity.amazonaws.com:sub}/*" }
-                    },
-                    effect: Effect.ALLOW
-                })
-            ]
-        });
-        const writeData = new PolicyDocument({
-            statements: [
-                new PolicyStatement({
-                    actions: [ "dynamodb:PutItem" ],
-                    resources: [ dynamoTable.tableArn ],
-                    conditions: {
-                        "ForAllValues:StringEquals": { "dynamodb:LeadingKeys": [ "${cognito-identity.amazonaws.com:sub}" ] }
-                    },
-                    effect: Effect.ALLOW
-                }),
-                new PolicyStatement({
-                    actions: [ "s3:PutObject" ],
-                    resources: [ s3Bucket.arnForObjects("${cognito-identity.amazonaws.com:sub}/*") ],
-                    effect: Effect.ALLOW
-                })
-            ]
-        });
-        const idPoolPrincipal = new FederatedPrincipal("cognito-identity.amazonaws.com", {
-            "StringEquals": { "cognito-identity.amazonaws.com:aud": this.identityPool.ref },
-            "ForAnyValue:StringLike": { "cognito-identity.amazonaws.com:amr": "authenticated" }
-        }, "sts:AssumeRoleWithWebIdentity");
-        // paid user
-        const paidRole = new Role(this, "paid-role", {
-            assumedBy: idPoolPrincipal,
-            inlinePolicies: {
-                readData,
-                writeData
-            }
-        });
-        const expiredRole = new Role(this, "expired-role", {
-            assumedBy: idPoolPrincipal,
-            inlinePolicies: {
-                readData
-            }
-        });
         const paidGroup = new CfnUserPoolGroup(this, "paid-group", {
-            userPoolId: userPool.userPoolId,
-            roleArn: paidRole.roleArn
+            userPoolId: this.userPool.userPoolId
         });
         const expiredGroup = new CfnUserPoolGroup(this, "expired-group", {
-            userPoolId: userPool.userPoolId,
-            roleArn: expiredRole.roleArn
+            userPoolId: this.userPool.userPoolId
         });
-
-        this.groups = [ paidGroup, expiredGroup ];
-
-        return groups;
-    }
-
-    private defineIdentityPool(): CfnIdentityPool {
-        return new CfnIdentityPool(this, "oceanic-identity-pool", {
-            allowUnauthenticatedIdentities: false,
-            allowClassicFlow: false,
-            
-            cognitoIdentityProviders: this.clients.map(client => ({
-                clientId: client.userPoolClientId,
-                providerName: this.userPool.userPoolProviderName,
-                serverSideTokenCheck: true
-            }))
-        })
+        new CfnOutput(this, "user-pool", { value: `${this.userPool.userPoolId}` });
     }
 
     private defineUserPool(callbackUrls: string[], logoutUrls: string[]): UserPool {

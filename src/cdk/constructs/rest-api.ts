@@ -1,7 +1,7 @@
 import { CognitoUserPoolsAuthorizer, Cors, LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { Construct } from "constructs";
-import { OceanicUserPool } from "./user-pool";
+import { OceanicUsers } from "./user-pool";
 import { lambdaDefaults } from "../oceanic-cloud-stack";
 import path = require("path");
 import { TableV2 } from "aws-cdk-lib/aws-dynamodb";
@@ -17,7 +17,7 @@ import { Stack } from "aws-cdk-lib";
 
 interface OceanicApiProps {
     isProd: boolean;
-    cognito: OceanicUserPool;
+    cognito: OceanicUsers;
     documents: OceanicStorage;
     database: TableV2;
     domainName?: string;
@@ -30,7 +30,7 @@ export class OceanicApi extends Construct {
     private cognitoAuthorizer: CognitoUserPoolsAuthorizer;
     private database: TableV2;
     private documents: OceanicStorage;
-    private cognito: OceanicUserPool
+    private cognito: OceanicUsers
     private keyGroup: KeyGroup;
     private distribution: Distribution;
 

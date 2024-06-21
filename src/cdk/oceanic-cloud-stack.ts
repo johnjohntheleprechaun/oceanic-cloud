@@ -3,7 +3,7 @@ import { TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import path = require('path');
-import { OceanicUserPool } from './constructs/user-pool';
+import { OceanicUsers } from './constructs/user-pool';
 import { OceanicStorage } from './constructs/storage';
 import { OceanicApi } from './constructs/rest-api';
 import { KeyGroup, PublicKey } from 'aws-cdk-lib/aws-cloudfront';
@@ -27,17 +27,15 @@ export class OceanicCloudStack extends cdk.Stack {
         super(scope, id, props);
 
         // Storage resources
-        const storage = new OceanicStorage(this, "oceanic-bucket", {
+        const storage = new OceanicStorage(this, "oceanic-storage", {
             isProd: props.isProd
         })
 
         // User pool definition
-        const cognito = new OceanicUserPool(this, "oceanic-users", {
+        const cognito = new OceanicUsers(this, "oceanic-users", {
             isProd: props.isProd,
             callbackUrls: props.oAuthCallbacks,
             logoutUrls: props.logoutUrls,
-            dynamoTable: storage.table,
-            s3Bucket: storage.bucket
         });
 
         const api = new OceanicApi(this, "oceanic-api", {
