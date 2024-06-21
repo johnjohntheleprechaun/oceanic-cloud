@@ -4,7 +4,7 @@ import { Architecture, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import path = require('path');
 import { OceanicUserPool } from './constructs/user-pool';
-import { OceanicDocumentBucket } from './constructs/document-bucket';
+import { OceanicStorage } from './constructs/storage';
 import { OceanicApi } from './constructs/rest-api';
 import { KeyGroup, PublicKey } from 'aws-cdk-lib/aws-cloudfront';
 import { readFileSync } from 'fs';
@@ -27,29 +27,24 @@ export class OceanicCloudStack extends cdk.Stack {
         super(scope, id, props);
 
         // Storage resources
-        const documents = new OceanicDocumentBucket(this, "oceanic-bucket", {
+        const storage = new OceanicStorage(this, "oceanic-bucket", {
             isProd: props.isProd
         })
-        const dynamoTable = new TableV2(this, "oceanic-db", {
-            removalPolicy: props?.isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
-            partitionKey: { name: "user", type: cdk.aws_dynamodb.AttributeType.STRING },
-            sortKey: { name: "id", type: cdk.aws_dynamodb.AttributeType.STRING },
-        });
 
         // User pool definition
         const cognito = new OceanicUserPool(this, "oceanic-users", {
             isProd: props.isProd,
             callbackUrls: props.oAuthCallbacks,
             logoutUrls: props.logoutUrls,
-            dynamoTable: dynamoTable,
-            s3Bucket: documents.bucket
+            dynamoTable: storage.table,
+            s3Bucket: storage.bucket
         });
 
         const api = new OceanicApi(this, "oceanic-api", {
             isProd: props.isProd,
             cognito,
-            documents,
-            database: dynamoTable,
+            documents: storage,
+            database: storage.table,
             domainName: props.domainName,
             certArn: props.certArn
         });

@@ -5,7 +5,7 @@ import { OceanicUserPool } from "./user-pool";
 import { lambdaDefaults } from "../oceanic-cloud-stack";
 import path = require("path");
 import { TableV2 } from "aws-cdk-lib/aws-dynamodb";
-import { OceanicDocumentBucket } from "./document-bucket";
+import { OceanicStorage } from "./storage";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Bucket } from "aws-cdk-lib/aws-s3";
@@ -18,7 +18,7 @@ import { Stack } from "aws-cdk-lib";
 interface OceanicApiProps {
     isProd: boolean;
     cognito: OceanicUserPool;
-    documents: OceanicDocumentBucket;
+    documents: OceanicStorage;
     database: TableV2;
     domainName?: string;
     certArn?: string;
@@ -29,7 +29,7 @@ export class OceanicApi extends Construct {
     apiVersion: string;
     private cognitoAuthorizer: CognitoUserPoolsAuthorizer;
     private database: TableV2;
-    private documents: OceanicDocumentBucket;
+    private documents: OceanicStorage;
     private cognito: OceanicUserPool
     private keyGroup: KeyGroup;
     private distribution: Distribution;
