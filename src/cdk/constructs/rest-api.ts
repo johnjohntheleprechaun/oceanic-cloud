@@ -1,11 +1,11 @@
 import { CognitoUserPoolsAuthorizer, Cors, LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { Construct } from "constructs";
-import { OceanicUserPool } from "./user-pool";
+import { OceanicUsers } from "./user-pool";
 import { lambdaDefaults } from "../oceanic-cloud-stack";
 import path = require("path");
 import { TableV2 } from "aws-cdk-lib/aws-dynamodb";
-import { OceanicDocumentBucket } from "./document-bucket";
+import { OceanicStorage } from "./storage";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Bucket } from "aws-cdk-lib/aws-s3";
@@ -17,9 +17,8 @@ import { Stack } from "aws-cdk-lib";
 
 interface OceanicApiProps {
     isProd: boolean;
-    cognito: OceanicUserPool;
-    documents: OceanicDocumentBucket;
-    database: TableV2;
+    cognito: OceanicUsers;
+    storage: OceanicStorage;
     domainName?: string;
     certArn?: string;
 }
@@ -27,10 +26,8 @@ interface OceanicApiProps {
 export class OceanicApi extends Construct {
     api: RestApi;
     apiVersion: string;
-    private cognitoAuthorizer: CognitoUserPoolsAuthorizer;
-    private database: TableV2;
-    private documents: OceanicDocumentBucket;
-    private cognito: OceanicUserPool
+    private storage: OceanicStorage;
+    private cognito: OceanicUsers
     private keyGroup: KeyGroup;
     private distribution: Distribution;
 
@@ -52,8 +49,7 @@ export class OceanicApi extends Construct {
         /* this.cognitoAuthorizer = new CognitoUserPoolsAuthorizer(this, "cognito-authorizer", {
             cognitoUserPools: [ props.cognito.userPool ]
         }); */
-        this.database = props.database;
-        this.documents = props.documents;
+        this.storage = props.storage;
         this.cognito = props.cognito;
         this.keyGroup = new KeyGroup(this, "url-key-group", {
             items: [
@@ -80,8 +76,8 @@ export class OceanicApi extends Construct {
                     responseHeadersPolicy: ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS
                 },
                 "/storage/*": {
-                    origin: new S3Origin(this.documents.bucket, {
-                        originAccessIdentity: this.documents.originAccessIdentity
+                    origin: new S3Origin(this.storage.bucket, {
+                        originAccessIdentity: this.storage.originAccessIdentity
                     }),
                     trustedKeyGroups: [
                         this.keyGroup

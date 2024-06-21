@@ -1,5 +1,6 @@
 import { Duration, RemovalPolicy } from "aws-cdk-lib";
 import { OriginAccessIdentity } from "aws-cdk-lib/aws-cloudfront";
+import { AttributeType, TableV2 } from "aws-cdk-lib/aws-dynamodb";
 import { CanonicalUserPrincipal, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Bucket, HttpMethods, LifecycleRule } from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
@@ -8,13 +9,16 @@ export interface OceanicDocumentBucketProps {
     isProd: boolean
 }
 
-export class OceanicDocumentBucket extends Construct {
+export class OceanicStorage extends Construct {
     bucket: Bucket;
+    table: TableV2;
     originAccessIdentity: OriginAccessIdentity;
     constructor (scope: Construct, id: string, props: OceanicDocumentBucketProps) {
         super(scope, id);
+
+        // Define bucket
         this.originAccessIdentity = new OriginAccessIdentity(this, "Cloudfront-OAI");
-        this.bucket = new Bucket(this, "user-documents", {
+        this.bucket = new Bucket(this, "bucket", {
             removalPolicy: props?.isProd ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
             autoDeleteObjects: !props.isProd,
             enforceSSL: true,
@@ -35,6 +39,13 @@ export class OceanicDocumentBucket extends Construct {
             resources: [ this.bucket.arnForObjects("*") ],
             principals: [ new CanonicalUserPrincipal(this.originAccessIdentity.cloudFrontOriginAccessIdentityS3CanonicalUserId) ]
         }));
+
+        // Define dynamo table
+        this.table = new TableV2(this, "table", {
+            removalPolicy: props?.isProd ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
+            partitionKey: { name: "user", type: AttributeType.STRING },
+            sortKey: { name: "id", type: AttributeType.STRING },
+        });
     }
 
     private defineLifecycleRules(): LifecycleRule[] {
