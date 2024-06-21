@@ -11,6 +11,9 @@ import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import { parse } from "yaml";
 import { openSync, readFileSync } from "fs";
+import { AllowedMethods, CachePolicy, Distribution, KeyGroup, OriginRequestPolicy, PublicKey, ResponseHeadersPolicy } from "aws-cdk-lib/aws-cloudfront";
+import { HttpOrigin, RestApiOrigin, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
+import { Stack } from "aws-cdk-lib";
 
 interface OceanicApiProps {
     isProd: boolean;
@@ -28,6 +31,8 @@ export class OceanicApi extends Construct {
     private database: TableV2;
     private documents: OceanicDocumentBucket;
     private cognito: OceanicUserPool
+    private keyGroup: KeyGroup;
+    private distribution: Distribution;
 
     constructor (scope: Construct, id: string, props: OceanicApiProps) {
         super(scope, id)
@@ -50,8 +55,40 @@ export class OceanicApi extends Construct {
         this.database = props.database;
         this.documents = props.documents;
         this.cognito = props.cognito;
+        this.keyGroup = new KeyGroup(this, "url-key-group", {
+            items: [
+                new PublicKey(this, "pubkey", {
+                    encodedKey: readFileSync("public_key.pem").toString()
+                })
+            ]
+        });
 
         this.loadApiDefinition("src/api/definition.yml", "src/api/endpoints");
+
+        this.distribution = new Distribution(this, "distribution", {
+            defaultBehavior: {
+                origin: new RestApiOrigin(this.api),
+                allowedMethods: AllowedMethods.ALLOW_ALL,
+                cachePolicy: CachePolicy.CACHING_DISABLED,
+            },
+            additionalBehaviors: {
+                "/auth": {
+                    origin: new HttpOrigin(`cognito-idp.${Stack.of(this).region}.amazonaws.com`),
+                    cachePolicy: CachePolicy.CACHING_DISABLED,
+                    allowedMethods: AllowedMethods.ALLOW_ALL,
+                    originRequestPolicy: OriginRequestPolicy.ALL_VIEWER,
+                    responseHeadersPolicy: ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS
+                },
+                "/storage/*": {
+                    origin: new S3Origin(this.documents.bucket, {
+                        originAccessIdentity: this.documents.originAccessIdentity
+                    }),
+                    trustedKeyGroups: [
+                        this.keyGroup
+                    ]
+                }
+            }
+        });
     }
 
     /**
