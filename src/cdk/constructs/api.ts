@@ -46,9 +46,7 @@ export class OceanicApi extends Construct {
                 certificate: Certificate.fromCertificateArn(this, "cert-arn", props.certArn)
             } : undefined
         });
-        /* this.cognitoAuthorizer = new CognitoUserPoolsAuthorizer(this, "cognito-authorizer", {
-            cognitoUserPools: [ props.cognito.userPool ]
-        }); */
+
         this.storage = props.storage;
         this.cognito = props.cognito;
         this.keyGroup = new KeyGroup(this, "url-key-group", {
