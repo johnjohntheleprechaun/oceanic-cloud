@@ -41,8 +41,7 @@ export class OceanicCloudStack extends cdk.Stack {
         const api = new OceanicApi(this, "oceanic-api", {
             isProd: props.isProd,
             cognito,
-            documents: storage,
-            database: storage.table,
+            storage,
             domainName: props.domainName,
             certArn: props.certArn
         });

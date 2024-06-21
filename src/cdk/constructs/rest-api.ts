@@ -18,8 +18,7 @@ import { Stack } from "aws-cdk-lib";
 interface OceanicApiProps {
     isProd: boolean;
     cognito: OceanicUsers;
-    documents: OceanicStorage;
-    database: TableV2;
+    storage: OceanicStorage;
     domainName?: string;
     certArn?: string;
 }
@@ -27,9 +26,7 @@ interface OceanicApiProps {
 export class OceanicApi extends Construct {
     api: RestApi;
     apiVersion: string;
-    private cognitoAuthorizer: CognitoUserPoolsAuthorizer;
-    private database: TableV2;
-    private documents: OceanicStorage;
+    private storage: OceanicStorage;
     private cognito: OceanicUsers
     private keyGroup: KeyGroup;
     private distribution: Distribution;
@@ -52,8 +49,7 @@ export class OceanicApi extends Construct {
         /* this.cognitoAuthorizer = new CognitoUserPoolsAuthorizer(this, "cognito-authorizer", {
             cognitoUserPools: [ props.cognito.userPool ]
         }); */
-        this.database = props.database;
-        this.documents = props.documents;
+        this.storage = props.storage;
         this.cognito = props.cognito;
         this.keyGroup = new KeyGroup(this, "url-key-group", {
             items: [
@@ -80,8 +76,8 @@ export class OceanicApi extends Construct {
                     responseHeadersPolicy: ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS
                 },
                 "/storage/*": {
-                    origin: new S3Origin(this.documents.bucket, {
-                        originAccessIdentity: this.documents.originAccessIdentity
+                    origin: new S3Origin(this.storage.bucket, {
+                        originAccessIdentity: this.storage.originAccessIdentity
                     }),
                     trustedKeyGroups: [
                         this.keyGroup
