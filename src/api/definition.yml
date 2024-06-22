@@ -78,7 +78,7 @@ paths:
         "401":
           $ref: "#/components/responses/unauthorized"
         "403":
-          description: "The authenticated user isn't allowed to create a document. This will happen if the authenticated user either doesn't match the `user` parameter (i.e. they're trying to create a document for another user), or they're no longer allowed write access on their account."
+          description: "The authenticated user isn't allowed to create a document. This will happen if they're trying to create a document for another user, or they're no longer allowed write access on their own account."
 
   /users/{user}/documents/{document}:
     get:
