@@ -2,7 +2,6 @@
 These define the permissions an API endpoint's lambda function needs in order to work properly. These should be listed under `x-lambda-roles` inside each endpoint method who's lambda function needs permissions.
 
 ## Implemented Roles:
-Any roles not defined in this list will be ignored.
 
 #### `document-reader`
 Grants read access to document metadata
