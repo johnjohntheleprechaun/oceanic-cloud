@@ -22,7 +22,6 @@ paths:
   /test:
     get:
       x-lambda-entry: test.ts
-      x-required-permissions: null
       responses:
         '200':
           description: OK
