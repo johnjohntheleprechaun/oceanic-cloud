@@ -1,11 +1,14 @@
 # Lambda Roles
-These define the permissions an API endpoint's lambda function needs in order to work properly. They're formatted as `{resource}-{subresource}-{read/write}`. If `resource` doesn't require and `subresource`, it can be excluded. These should be listed under `x-lambda-roles` inside each endpoint method who's lambda function needs permissions.
+These define the permissions an API endpoint's lambda function needs in order to work properly. These should be listed under `x-lambda-roles` inside each endpoint method who's lambda function needs permissions.
 
 ## Implemented Roles:
-Any role strings that aren't in this list will be ignored. Roles in the list also don't include the `read/write` ending (which is obviously self-explanatory).
+Any roles not defined in this list will be ignored.
 
-#### `dynamo-document`
-- Document metadata stored in DynamoDB
+#### `document-reader`
+Grants read access to document metadata
 
-#### `dynamo-user`
-- User data stored in DynamoDB
+#### `document-writer`
+Grants write access to document metadata
+
+#### `document-signer`
+Grants access to the cloudfront URL signing private key as an environment variable named `CLOUDFRONT_PRIVATE_KEY`.This allows the function to grant users access to document content.
