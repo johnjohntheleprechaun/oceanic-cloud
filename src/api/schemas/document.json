@@ -18,5 +18,6 @@
             "type": "array",
             "items": { "$ref": "uuid.json" }
         }
-    }
+    },
+    "required": [ "owner", "id", "type", "created", "updated" ]
 }
