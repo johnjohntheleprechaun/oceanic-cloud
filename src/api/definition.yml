@@ -39,6 +39,8 @@ paths:
   /users/{user}/documents:
     get:
       x-lambda-entry: document/list.ts
+      x-lambda-roles:
+        - document-reader
       summary: List documents.
       tags:
         - documents
@@ -59,6 +61,9 @@ paths:
           description: The authenticated user doesn't match the `user` parameter. (You're only allowed to list your own documents)
     post:
       x-lambda-entry: document/create.ts
+      x-lambda-roles:
+        - document-writer
+        - document-signer
       summary: Create a new document.
       tags:
         - documents
@@ -83,6 +88,9 @@ paths:
   /users/{user}/documents/{document}:
     get:
       x-lambda-entry: document/get.ts
+      x-lambda-roles:
+        - document-reader
+        - document-signer
       summary: Get document metadata.
       tags:
         - documents
@@ -108,6 +116,8 @@ paths:
           description: The document doesn't exist. This will only be returned if the authenticated user *would've* had access, had it existed. In other words, if the they're the same user as the one specified in the `user` parameter.
     patch:
       x-lambda-entry: document/update.ts
+      x-lambda-roles:
+        - document-writer
       summary: Update document metadata.
       tags:
         - documents
