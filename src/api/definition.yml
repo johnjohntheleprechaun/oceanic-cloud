@@ -38,8 +38,8 @@ paths:
   /users/{user}/documents:
     get:
       x-lambda-entry: document/list.ts
-      x-lambda-roles:
-        - document-reader
+      x-lambda-dependencies:
+        - document-metadata-read-policy
       summary: List documents.
       tags:
         - documents
@@ -60,9 +60,9 @@ paths:
           description: The authenticated user doesn't match the `user` parameter. (You're only allowed to list your own documents)
     post:
       x-lambda-entry: document/create.ts
-      x-lambda-roles:
-        - document-writer
-        - document-signer
+      x-lambda-dependencies:
+        - document-metadata-write-policy
+        - cloudfront-signing-key
       summary: Create a new document.
       tags:
         - documents
@@ -87,9 +87,9 @@ paths:
   /users/{user}/documents/{document}:
     get:
       x-lambda-entry: document/get.ts
-      x-lambda-roles:
-        - document-reader
-        - document-signer
+      x-lambda-dependencies:
+        - document-metadata-read-policy
+        - cloudfront-signing-key
       summary: Get document metadata.
       tags:
         - documents
@@ -115,8 +115,8 @@ paths:
           description: The document doesn't exist. This will only be returned if the authenticated user *would've* had access, had it existed. In other words, if the they're the same user as the one specified in the `user` parameter.
     patch:
       x-lambda-entry: document/update.ts
-      x-lambda-roles:
-        - document-writer
+      x-lambda-dependencies:
+        - document-metadata-write-policy
       summary: Update document metadata.
       tags:
         - documents
