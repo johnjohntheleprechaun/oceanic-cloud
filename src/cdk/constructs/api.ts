@@ -7,7 +7,7 @@ import path = require("path");
 import { TableV2 } from "aws-cdk-lib/aws-dynamodb";
 import { OceanicStorage } from "./storage";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
-import { PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { Effect, Policy, PolicyDocument, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Bucket } from "aws-cdk-lib/aws-s3";
 import { parse } from "yaml";
 import { openSync, readFileSync } from "fs";
@@ -30,6 +30,7 @@ export class OceanicApi extends Construct {
     private cognito: OceanicUsers
     private keyGroup: KeyGroup;
     private distribution: Distribution;
+    private readonly lambdaPolicies: { [key: string]: Policy };
 
     constructor (scope: Construct, id: string, props: OceanicApiProps) {
         super(scope, id)
@@ -56,6 +57,42 @@ export class OceanicApi extends Construct {
                 })
             ]
         });
+
+        // define lambda policies
+       this.lambdaPolicies = {
+            documentMetadataRead: new Policy(this, "document-metadata-read-policy", {
+                document: new PolicyDocument({
+                    statements: [
+                        new PolicyStatement({
+                            effect: Effect.ALLOW,
+                            actions: [ "dynamodb:GetItem", "dynamodb:Query" ],
+                            conditions: {
+                                "StringLike": {
+                                    "dynamodb:LeadingKeys": "documents:*"
+                                }
+                            },
+                            resources: [ this.storage.table.tableArn ]
+                        })
+                    ]
+                })
+            }),
+            documentMetadataWrite: new Policy(this, "document-metadata-write-policy", {
+                document: new PolicyDocument({
+                    statements: [
+                        new PolicyStatement({
+                            effect: Effect.ALLOW,
+                            actions: [ "dynamodb:PutItem", "dynamodb:UpdateItem" ],
+                            conditions: {
+                                "StringLike": {
+                                    "dynamodb:LeadingKeys": "documents:*"
+                                }
+                            },
+                            resources: [ this.storage.table.tableArn ],
+                        })
+                    ]
+                })
+            })
+        };
 
         this.loadApiDefinition("src/api/definition.yml", "src/api/endpoints");
 
