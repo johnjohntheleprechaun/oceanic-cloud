@@ -173,14 +173,14 @@ export class OceanicApi extends Construct {
                 const name = (resourceDefinition[method]["x-lambda-entry"] as string).replace("/", "-").replace(/.(js|ts)$/, "") + "-function";
                 console.log(name);
                 // fetch the required permissions
-                const permissions: string[] = resourceDefinition[method]["x-lambda-dependencies"] ? resourceDefinition[method]["x-lambda-dependencies"] : [];
+                const dependencies: string[] = resourceDefinition[method]["x-lambda-dependencies"] ? resourceDefinition[method]["x-lambda-dependencies"] : [];
 
                 // create the lambda function
                 let lambdaFunction: NodejsFunction;
                 if (!functions[name]) {
                     // set up environment variables
                     const environment: any = {};
-                    if (permissions.find(a => a === "cloudfront-signing-key")) {
+                    if (dependencies.find(a => a === "cloudfront-signing-key")) {
                         environment["CLOUDFRONT_PRIVATE_KEY"] = this.cloudfrontPrivateKey;
                     }
                     lambdaFunction = new NodejsFunction(this, name, {
@@ -194,7 +194,7 @@ export class OceanicApi extends Construct {
                         // this should never happen
                         throw new Error("the function doesn't have a role.... why");
                     }
-                    for (const dependency of permissions) {
+                    for (const dependency of dependencies) {
                         switch (dependency) {
                             case "document-metadata-read-policy":
                                 this.lambdaPolicies.documentMetadataRead.attachToRole(lambdaFunction.role);
