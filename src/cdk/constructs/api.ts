@@ -174,6 +174,7 @@ export class OceanicApi extends Construct {
                 console.log(name);
                 // fetch the required permissions
                 const dependencies: string[] = resourceDefinition[method]["x-lambda-dependencies"] ? resourceDefinition[method]["x-lambda-dependencies"] : [];
+                console.log(dependencies);
 
                 // create the lambda function
                 let lambdaFunction: NodejsFunction;
@@ -198,6 +199,10 @@ export class OceanicApi extends Construct {
                         switch (dependency) {
                             case "document-metadata-read-policy":
                                 this.lambdaPolicies.documentMetadataRead.attachToRole(lambdaFunction.role);
+                                break;
+                            case "document-metadata-write-policy":
+                                this.lambdaPolicies.documentMetadataWrite.attachToRole(lambdaFunction.role);
+                                break;
                         }
                     }
                     functions[name] = lambdaFunction;
