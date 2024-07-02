@@ -29,6 +29,7 @@ export class OceanicApi extends Construct {
     private storage: OceanicStorage;
     private cognito: OceanicUsers
     private keyGroup: KeyGroup;
+    private cloudfrontPrivateKey: string;
     private distribution: Distribution;
     private readonly lambdaPolicies: { [key: string]: Policy };
 
@@ -57,6 +58,7 @@ export class OceanicApi extends Construct {
                 })
             ]
         });
+        this.cloudfrontPrivateKey = readFileSync("private_key.pem").toString();
 
         // define lambda policies
        this.lambdaPolicies = {
@@ -170,15 +172,34 @@ export class OceanicApi extends Construct {
                 // generate a name for the function
                 const name = (resourceDefinition[method]["x-lambda-entry"] as string).replace("/", "-").replace(/.(js|ts)$/, "") + "-function";
                 console.log(name);
+                // fetch the required permissions
+                const permissions: string[] = resourceDefinition[method]["x-lambda-dependencies"] ? resourceDefinition[method]["x-lambda-dependencies"] : [];
 
                 // create the lambda function
                 let lambdaFunction: NodejsFunction;
                 if (!functions[name]) {
+                    // set up environment variables
+                    const environment: any = {};
+                    if (permissions.find(a => a === "cloudfront-signing-key")) {
+                        environment["CLOUDFRONT_PRIVATE_KEY"] = this.cloudfrontPrivateKey;
+                    }
                     lambdaFunction = new NodejsFunction(this, name, {
                         runtime: lambdaDefaults.runtime,
                         architecture: lambdaDefaults.architecture,
-                        entry: entry
+                        entry: entry,
+                        environment
                     });
+                    // apply iam policies
+                    if (!lambdaFunction.role) {
+                        // this should never happen
+                        throw new Error("the function doesn't have a role.... why");
+                    }
+                    for (const dependency of permissions) {
+                        switch (dependency) {
+                            case "document-metadata-read-policy":
+                                this.lambdaPolicies.documentMetadataRead.attachToRole(lambdaFunction.role);
+                        }
+                    }
                     functions[name] = lambdaFunction;
                 } else {
                     lambdaFunction = functions[name];
