@@ -92,9 +92,12 @@ export class OceanicApi extends Construct {
      * @param baseFunctionPath The base path for lambda function entrypoints in x-lambda-entry
      */
     loadApiDefinition(templatePath: string, baseFunctionPath: string) {
+        // load and parse template file
         const templateContent = readFileSync(templatePath).toString();
         const template = parse(templateContent);
+        
         const functions: { [key: string]: NodejsFunction } = {};
+        // iterate through each defined path (unless it's explicitly exluded)
         for (const resourcePath in template.paths) {
             const resourceDefinition = template.paths[resourcePath];
 
@@ -103,7 +106,7 @@ export class OceanicApi extends Construct {
                 continue;
             }
             
-            // Create the resource
+            // climb the rest api resource tree
             const pathParts = resourcePath.split("/")
             for (let i = 0; i < pathParts.length; i++) {
                 if (pathParts[i] === "") {
@@ -113,6 +116,7 @@ export class OceanicApi extends Construct {
             console.log(pathParts);
             let resource = this.api.root;
             for (const part of pathParts) {
+                // create a new resource if it doesn't already exist
                 const next = resource.getResource(part);
                 if (!next) {
                     resource = resource.addResource(part);
@@ -122,13 +126,15 @@ export class OceanicApi extends Construct {
                 }
             }
 
+            // load functions for each method under the path
             for (const method in resourceDefinition) {
-                // Extract path and name
+                // extract the node entry point for the lambda function
                 const entry = path.join(baseFunctionPath, resourceDefinition[method]["x-lambda-entry"]);
+                // generate a name for the function
                 const name = (resourceDefinition[method]["x-lambda-entry"] as string).replace("/", "-").replace(/.(js|ts)$/, "") + "-function";
                 console.log(name);
 
-                // Create lambda function
+                // create the lambda function
                 let lambdaFunction: NodejsFunction;
                 if (!functions[name]) {
                     lambdaFunction = new NodejsFunction(this, name, {
@@ -141,7 +147,7 @@ export class OceanicApi extends Construct {
                     lambdaFunction = functions[name];
                 }
 
-                // Add it to the API
+                // add the lambda function to the rest api
                 const integration = new LambdaIntegration(lambdaFunction);
                 resource.addMethod(method, integration);
             }
