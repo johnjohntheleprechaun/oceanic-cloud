@@ -18,9 +18,12 @@
         "authorizedUsers": {
             "type": "array",
             "description": "The uuids of all the users who are allowed to read this document. This does *not* include the owner.",
-            "items": { 
-                "id": { "$ref": "uuid.json" },
-                "key": { "type": "string", "format": "base64", "description": "The document key, wrapped with the user's public key, encoded as a base64 string." }
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": { "$ref": "uuid.json" },
+                    "key": { "type": "string", "format": "base64", "description": "The document key, wrapped with the user's public key, encoded as a base64 string." }
+                }
             }
         }
     },
