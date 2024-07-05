@@ -4,14 +4,40 @@
     "properties": {
         "op": {
             "type": "string",
-            "enum": [ "add", "remove", "replace", "copy", "move", "test" ],
-            "examples": [ "add" ]
+            "enum": [
+                "add",
+                "remove",
+                "replace",
+                "copy",
+                "move",
+                "test"
+            ],
+            "examples": [
+                "add"
+            ]
         },
-        "path": { "type": "string", "examples": [ "/attachments/-" ] },
+        "path": {
+            "type": "string",
+            "examples": [
+                "/attachments/-"
+            ]
+        },
         "value": {
-            "type": [ "string", "number", "integer", "object", "array", "boolean" ],
-            "examples": [ "6c3ae31d-29be-4244-a080-2cbd1889f509" ]
+            "type": [
+                "string",
+                "number",
+                "integer",
+                "object",
+                "array",
+                "boolean"
+            ],
+            "examples": [
+                "6c3ae31d-29be-4244-a080-2cbd1889f509"
+            ]
         }
     },
-    "required": [ "op", "path" ]
+    "required": [
+        "op",
+        "path"
+    ]
 }

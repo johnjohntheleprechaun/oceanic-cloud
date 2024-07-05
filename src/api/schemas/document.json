@@ -2,22 +2,52 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "properties": {
-        "owner": { "$ref": "uuid.json" },
-        "id": { "$ref": "uuid.json" },
-        "title": { "contentMediaType": "application/octet-stream", "contentEncoding": "base64", "description": "Encrypted with the document key, and encoded as a base64 string" },
-        "type": { "type": "string" },
-        "created": { "type": "number" },
-        "updated": { "type": "number" },
-        "documentKey": { "contentMediaType": "application/octet-stream", "contentEncoding": "base64" },
-        "signedUrl": { "type": "string", "format": "uri" },
+        "owner": {
+            "$ref": "uuid.json"
+        },
+        "id": {
+            "$ref": "uuid.json"
+        },
+        "title": {
+            "contentMediaType": "application/octet-stream",
+            "contentEncoding": "base64",
+            "description": "Encrypted with the document key, and encoded as a base64 string"
+        },
+        "type": {
+            "type": "string"
+        },
+        "created": {
+            "type": "number"
+        },
+        "updated": {
+            "type": "number"
+        },
+        "documentKey": {
+            "contentMediaType": "application/octet-stream",
+            "contentEncoding": "base64"
+        },
+        "signedUrl": {
+            "type": "string",
+            "format": "uri"
+        },
         "attachments": {
             "type": "array",
-            "items": { "$ref": "attachment.json" }
+            "items": {
+                "$ref": "attachment.json"
+            }
         },
         "authorizedUsers": {
             "type": "array",
-            "items": { "$ref": "uuid.json" }
+            "items": {
+                "$ref": "uuid.json"
+            }
         }
     },
-    "required": [ "owner", "id", "type", "created", "updated" ]
+    "required": [
+        "owner",
+        "id",
+        "type",
+        "created",
+        "updated"
+    ]
 }
