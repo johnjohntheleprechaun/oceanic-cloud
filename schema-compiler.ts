@@ -1,10 +1,8 @@
-import {readdirSync, writeFileSync} from "fs";
-import {readdir, stat} from "fs/promises";
-import {compileFromFile} from "json-schema-to-typescript";
-import path, {join, relative} from "path";
-
-compileFromFile("src/api/schemas/document-create.json", {cwd: "src/api/schemas", additionalProperties: false, })
-    .then(ts => writeFileSync("test.d.ts", ts));
+import {FileInfo, dereference} from "@apidevtools/json-schema-ref-parser";
+import {existsSync} from "fs";
+import {mkdir, readFile, readdir, stat, writeFile} from "fs/promises";
+import {compile, compileFromFile} from "json-schema-to-typescript";
+import {join, parse, relative} from "path";
 
 // traverse the schema file tree
 async function traverseDirectory(dir: string, base?: string, outPaths: string[] = []) {
@@ -23,5 +21,27 @@ async function traverseDirectory(dir: string, base?: string, outPaths: string[] 
     return outPaths;
 }
 
-traverseDirectory("src/api/schemas")
-    .then(a => console.log((a)));
+// do thing to the thing to make the things or something
+(async () => {
+    const relativePaths = await traverseDirectory("src/api/schemas");
+
+    // create the output directories if they don't exist already
+    if (!existsSync("src/api/schema-types")) {
+        await mkdir("src/api/schema-types");
+    }
+    if (!existsSync("src/api/compiled-schemas")) {
+        await mkdir("src/api/compiled-schemas");
+    }
+
+    for (const path of relativePaths) {
+        const realPath = join("src/api/schemas", path);
+
+        // compile the paths
+        const ts = await compileFromFile(realPath, {cwd: "src/api/schemas"});
+        const compiled = JSON.stringify(await dereference(realPath));
+
+        // write the new files
+        await writeFile(join("src/api/schema-types", parse(path).name + ".d.ts"), ts);
+        await writeFile(join("src/api/compiled-schemas", path), compiled)
+    }
+})();
