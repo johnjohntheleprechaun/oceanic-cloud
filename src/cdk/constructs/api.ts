@@ -1,19 +1,17 @@
-import { CognitoUserPoolsAuthorizer, Cors, LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
-import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
-import { Construct } from "constructs";
-import { OceanicUsers } from "./users";
-import { lambdaDefaults } from "../oceanic-cloud-stack";
+import {CognitoUserPoolsAuthorizer, Cors, LambdaIntegration, RestApi} from "aws-cdk-lib/aws-apigateway";
+import {Certificate} from 'aws-cdk-lib/aws-certificatemanager';
+import {Construct} from "constructs";
+import {OceanicUsers} from "./users";
+import {lambdaDefaults} from "../oceanic-cloud-stack";
 import path = require("path");
-import { TableV2 } from "aws-cdk-lib/aws-dynamodb";
-import { OceanicStorage } from "./storage";
-import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
-import { Effect, Policy, PolicyDocument, PolicyStatement } from "aws-cdk-lib/aws-iam";
-import { Bucket } from "aws-cdk-lib/aws-s3";
-import { parse } from "yaml";
-import { openSync, readFileSync } from "fs";
-import { AllowedMethods, CachePolicy, Distribution, KeyGroup, OriginRequestPolicy, PublicKey, ResponseHeadersPolicy } from "aws-cdk-lib/aws-cloudfront";
-import { HttpOrigin, RestApiOrigin, S3Origin } from "aws-cdk-lib/aws-cloudfront-origins";
-import { Stack } from "aws-cdk-lib";
+import {OceanicStorage} from "./storage";
+import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs";
+import {Effect, Policy, PolicyDocument, PolicyStatement} from "aws-cdk-lib/aws-iam";
+import {parse} from "yaml";
+import {readFileSync} from "fs";
+import {AllowedMethods, CachePolicy, Distribution, KeyGroup, OriginRequestPolicy, PublicKey, ResponseHeadersPolicy} from "aws-cdk-lib/aws-cloudfront";
+import {HttpOrigin, RestApiOrigin, S3Origin} from "aws-cdk-lib/aws-cloudfront-origins";
+import {Stack} from "aws-cdk-lib";
 
 interface OceanicApiProps {
     isProd: boolean;
@@ -31,9 +29,9 @@ export class OceanicApi extends Construct {
     private keyGroup: KeyGroup;
     private cloudfrontPrivateKey: string;
     private distribution: Distribution;
-    private readonly lambdaPolicies: { [key: string]: Policy };
+    private readonly lambdaPolicies: {[key: string]: Policy};
 
-    constructor (scope: Construct, id: string, props: OceanicApiProps) {
+    constructor(scope: Construct, id: string, props: OceanicApiProps) {
         super(scope, id)
         // API definition
         this.apiVersion = "0.1.0";
@@ -61,19 +59,19 @@ export class OceanicApi extends Construct {
         this.cloudfrontPrivateKey = readFileSync("private_key.pem").toString();
 
         // define lambda policies
-       this.lambdaPolicies = {
+        this.lambdaPolicies = {
             documentMetadataRead: new Policy(this, "document-metadata-read-policy", {
                 document: new PolicyDocument({
                     statements: [
                         new PolicyStatement({
                             effect: Effect.ALLOW,
-                            actions: [ "dynamodb:GetItem", "dynamodb:Query" ],
+                            actions: ["dynamodb:GetItem", "dynamodb:Query"],
                             conditions: {
                                 "StringLike": {
                                     "dynamodb:LeadingKeys": "documents:*"
                                 }
                             },
-                            resources: [ this.storage.table.tableArn ]
+                            resources: [this.storage.table.tableArn]
                         })
                     ]
                 })
@@ -83,13 +81,13 @@ export class OceanicApi extends Construct {
                     statements: [
                         new PolicyStatement({
                             effect: Effect.ALLOW,
-                            actions: [ "dynamodb:PutItem", "dynamodb:UpdateItem" ],
+                            actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
                             conditions: {
                                 "StringLike": {
                                     "dynamodb:LeadingKeys": "documents:*"
                                 }
                             },
-                            resources: [ this.storage.table.tableArn ],
+                            resources: [this.storage.table.tableArn],
                         })
                     ]
                 })
@@ -134,8 +132,8 @@ export class OceanicApi extends Construct {
         // load and parse template file
         const templateContent = readFileSync(templatePath).toString();
         const template = parse(templateContent);
-        
-        const functions: { [key: string]: NodejsFunction } = {};
+
+        const functions: {[key: string]: NodejsFunction} = {};
         // iterate through each defined path (unless it's explicitly exluded)
         for (const resourcePath in template.paths) {
             const resourceDefinition = template.paths[resourcePath];
@@ -144,7 +142,7 @@ export class OceanicApi extends Construct {
                 // don't add this path at all
                 continue;
             }
-            
+
             // climb the rest api resource tree
             const pathParts = resourcePath.split("/")
             for (let i = 0; i < pathParts.length; i++) {
@@ -188,7 +186,8 @@ export class OceanicApi extends Construct {
                         runtime: lambdaDefaults.runtime,
                         architecture: lambdaDefaults.architecture,
                         entry: entry,
-                        environment
+                        environment,
+                        memorySize: 256,
                     });
                     // apply iam policies
                     if (!lambdaFunction.role) {
