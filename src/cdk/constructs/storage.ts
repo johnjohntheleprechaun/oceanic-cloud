@@ -1,9 +1,9 @@
-import { Duration, RemovalPolicy } from "aws-cdk-lib";
-import { OriginAccessIdentity } from "aws-cdk-lib/aws-cloudfront";
-import { AttributeType, TableV2 } from "aws-cdk-lib/aws-dynamodb";
-import { CanonicalUserPrincipal, PolicyStatement } from "aws-cdk-lib/aws-iam";
-import { Bucket, HttpMethods, LifecycleRule } from "aws-cdk-lib/aws-s3";
-import { Construct } from "constructs";
+import {Duration, RemovalPolicy} from "aws-cdk-lib";
+import {OriginAccessIdentity} from "aws-cdk-lib/aws-cloudfront";
+import {AttributeType, TableV2} from "aws-cdk-lib/aws-dynamodb";
+import {CanonicalUserPrincipal, PolicyStatement} from "aws-cdk-lib/aws-iam";
+import {Bucket, HttpMethods, LifecycleRule} from "aws-cdk-lib/aws-s3";
+import {Construct} from "constructs";
 
 export interface OceanicDocumentBucketProps {
     isProd: boolean
@@ -13,7 +13,7 @@ export class OceanicStorage extends Construct {
     bucket: Bucket;
     table: TableV2;
     originAccessIdentity: OriginAccessIdentity;
-    constructor (scope: Construct, id: string, props: OceanicDocumentBucketProps) {
+    constructor(scope: Construct, id: string, props: OceanicDocumentBucketProps) {
         super(scope, id);
 
         // Define bucket
@@ -25,8 +25,8 @@ export class OceanicStorage extends Construct {
             lifecycleRules: this.defineLifecycleRules(),
             versioned: true,
             cors: [{
-                allowedOrigins: [ "*" ],
-                allowedHeaders: [ "*" ],
+                allowedOrigins: ["*"],
+                allowedHeaders: ["*"],
                 allowedMethods: [
                     HttpMethods.GET,
                     HttpMethods.PUT,
@@ -35,16 +35,16 @@ export class OceanicStorage extends Construct {
             }]
         });
         this.bucket.addToResourcePolicy(new PolicyStatement({
-            actions: [ "s3:GetObject", "s3:PutObject", "s3:DeleteObject" ],
-            resources: [ this.bucket.arnForObjects("*") ],
-            principals: [ new CanonicalUserPrincipal(this.originAccessIdentity.cloudFrontOriginAccessIdentityS3CanonicalUserId) ]
+            actions: ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+            resources: [this.bucket.arnForObjects("*")],
+            principals: [new CanonicalUserPrincipal(this.originAccessIdentity.cloudFrontOriginAccessIdentityS3CanonicalUserId)]
         }));
 
         // Define dynamo table
         this.table = new TableV2(this, "table", {
             removalPolicy: props?.isProd ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
-            partitionKey: { name: "user", type: AttributeType.STRING },
-            sortKey: { name: "id", type: AttributeType.STRING },
+            partitionKey: {name: "user", type: AttributeType.STRING},
+            sortKey: {name: "id", type: AttributeType.STRING},
         });
     }
 
