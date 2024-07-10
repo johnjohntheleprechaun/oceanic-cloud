@@ -67,7 +67,7 @@ export class OceanicApi extends Construct {
                             effect: Effect.ALLOW,
                             actions: ["dynamodb:GetItem", "dynamodb:Query"],
                             conditions: {
-                                "StringLike": {
+                                "ForAllValues:StringLike": {
                                     "dynamodb:LeadingKeys": "documents:*"
                                 }
                             },
@@ -83,7 +83,7 @@ export class OceanicApi extends Construct {
                             effect: Effect.ALLOW,
                             actions: ["dynamodb:PutItem", "dynamodb:UpdateItem"],
                             conditions: {
-                                "StringLike": {
+                                "ForAllValues:StringLike": {
                                     "dynamodb:LeadingKeys": "documents:*"
                                 }
                             },
