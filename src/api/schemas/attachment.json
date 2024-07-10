@@ -8,5 +8,9 @@
         "type": {
             "type": "string"
         }
-    }
+    },
+    "required": [
+        "id",
+        "type"
+    ]
 }

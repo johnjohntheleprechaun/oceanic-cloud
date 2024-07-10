@@ -48,6 +48,8 @@
         "id",
         "type",
         "created",
-        "updated"
+        "updated",
+        "documentKey",
+        "signedUrl"
     ]
 }
