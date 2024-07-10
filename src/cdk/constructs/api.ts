@@ -11,7 +11,7 @@ import {parse} from "yaml";
 import {readFileSync} from "fs";
 import {AllowedMethods, CachePolicy, Distribution, KeyGroup, OriginRequestPolicy, PublicKey, ResponseHeadersPolicy} from "aws-cdk-lib/aws-cloudfront";
 import {HttpOrigin, RestApiOrigin, S3Origin} from "aws-cdk-lib/aws-cloudfront-origins";
-import {Stack} from "aws-cdk-lib";
+import {CfnOutput, Stack} from "aws-cdk-lib";
 
 interface OceanicApiProps {
     isProd: boolean;
@@ -120,6 +120,7 @@ export class OceanicApi extends Construct {
                 }
             }
         });
+        new CfnOutput(this, "distribution-url", {value: `https://${this.distribution.distributionDomainName}`});
     }
 
     /**
