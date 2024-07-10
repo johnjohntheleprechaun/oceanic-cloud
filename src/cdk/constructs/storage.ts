@@ -43,7 +43,7 @@ export class OceanicStorage extends Construct {
         // Define dynamo table
         this.table = new TableV2(this, "table", {
             removalPolicy: props?.isProd ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
-            partitionKey: {name: "user", type: AttributeType.STRING},
+            partitionKey: {name: "dataTypeUser", type: AttributeType.STRING},
             sortKey: {name: "id", type: AttributeType.STRING},
         });
     }
