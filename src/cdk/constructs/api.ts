@@ -25,7 +25,8 @@ export class OceanicApi extends Construct {
     api: RestApi;
     apiVersion: string;
     private storage: OceanicStorage;
-    private cognito: OceanicUsers
+    private cognito: OceanicUsers;
+    private cognitoAuthorizer: CognitoUserPoolsAuthorizer;
     private keyGroup: KeyGroup;
     private cloudfrontPrivateKey: string;
     private distribution: Distribution;
@@ -49,6 +50,9 @@ export class OceanicApi extends Construct {
 
         this.storage = props.storage;
         this.cognito = props.cognito;
+        this.cognitoAuthorizer = new CognitoUserPoolsAuthorizer(this, "user-pool-authorizer", {
+            cognitoUserPools: [this.cognito.userPool],
+        });
         this.keyGroup = new KeyGroup(this, "url-key-group", {
             items: [
                 new PublicKey(this, "pubkey", {
@@ -101,6 +105,7 @@ export class OceanicApi extends Construct {
                 origin: new RestApiOrigin(this.api),
                 allowedMethods: AllowedMethods.ALLOW_ALL,
                 cachePolicy: CachePolicy.CACHING_DISABLED,
+                originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER, // for some reason ALL_VIEWER deosn't work with API Gateway...
             },
             additionalBehaviors: {
                 "/auth": {
@@ -212,7 +217,9 @@ export class OceanicApi extends Construct {
 
                 // add the lambda function to the rest api
                 const integration = new LambdaIntegration(lambdaFunction);
-                resource.addMethod(method, integration);
+                resource.addMethod(method, integration, {
+                    authorizer: this.cognitoAuthorizer,
+                });
             }
         }
     }
