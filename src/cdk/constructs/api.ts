@@ -185,9 +185,15 @@ export class OceanicApi extends Construct {
                 if (!functions[name]) {
                     // set up environment variables
                     const environment: any = {};
-                    if (dependencies.find(a => a === "cloudfront-signing-key")) {
-                        environment["CLOUDFRONT_PRIVATE_KEY"] = this.cloudfrontPrivateKey;
+                    for (const dependency of dependencies) {
+                        if (dependency.startsWith("document-metadata-")) {
+                            environment["DYNAMO_TABLE"] = this.storage.table.tableName;
+                        }
+                        else if (dependency === "cloudfront-signing-key") {
+                            environment["CLOUDFRONT_PRIVATE_KEY"] = this.cloudfrontPrivateKey;
+                        }
                     }
+
                     lambdaFunction = new NodejsFunction(this, name, {
                         runtime: lambdaDefaults.runtime,
                         architecture: lambdaDefaults.architecture,
