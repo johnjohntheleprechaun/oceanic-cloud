@@ -42,10 +42,6 @@ export class OceanicApi extends Construct {
             deployOptions: {
                 stageName: "v1"
             },
-            domainName: (props?.domainName && props.certArn) ? {
-                domainName: props.domainName,
-                certificate: Certificate.fromCertificateArn(this, "cert-arn", props.certArn)
-            } : undefined
         });
 
         this.storage = props.storage;
@@ -189,8 +185,10 @@ export class OceanicApi extends Construct {
                         if (dependency.startsWith("document-metadata-")) {
                             environment["DYNAMO_TABLE"] = this.storage.table.tableName;
                         }
-                        else if (dependency === "cloudfront-signing-key") {
+                        else if (dependency === "cloudfront-signing") {
                             environment["CLOUDFRONT_PRIVATE_KEY"] = this.cloudfrontPrivateKey;
+                            //environment["CLOUDFRONT_DOMAIN"] = this.distribution.domainName;
+                            environment["CLOUDFRONT_KEY_GROUP"] = this.keyGroup.keyGroupId;
                         }
                     }
 
@@ -208,10 +206,10 @@ export class OceanicApi extends Construct {
                     }
                     for (const dependency of dependencies) {
                         switch (dependency) {
-                            case "document-metadata-read-policy":
+                            case "document-metadata-read":
                                 this.lambdaPolicies.documentMetadataRead.attachToRole(lambdaFunction.role);
                                 break;
-                            case "document-metadata-write-policy":
+                            case "document-metadata-write":
                                 this.lambdaPolicies.documentMetadataWrite.attachToRole(lambdaFunction.role);
                                 break;
                         }

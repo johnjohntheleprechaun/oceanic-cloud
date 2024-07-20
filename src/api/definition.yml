@@ -39,7 +39,7 @@ paths:
     get:
       x-lambda-entry: document/list.ts
       x-lambda-dependencies:
-        - document-metadata-read-policy
+        - document-metadata-read
       summary: List documents.
       tags:
         - documents
@@ -61,8 +61,8 @@ paths:
     post:
       x-lambda-entry: document/create.ts
       x-lambda-dependencies:
-        - document-metadata-write-policy
-        - cloudfront-signing-key
+        - document-metadata-write
+        - cloudfront-signing
       summary: Create a new document.
       tags:
         - documents
@@ -88,8 +88,8 @@ paths:
     get:
       x-lambda-entry: document/get.ts
       x-lambda-dependencies:
-        - document-metadata-read-policy
-        - cloudfront-signing-key
+        - document-metadata-read
+        - cloudfront-signing
       summary: Get document metadata.
       tags:
         - documents
@@ -116,7 +116,7 @@ paths:
     patch:
       x-lambda-entry: document/update.ts
       x-lambda-dependencies:
-        - document-metadata-write-policy
+        - document-metadata-write
       summary: Update document metadata.
       tags:
         - documents
