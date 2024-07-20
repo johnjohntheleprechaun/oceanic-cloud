@@ -9,6 +9,7 @@
             "$ref": "uuid.json"
         },
         "title": {
+            "type": "string",
             "contentMediaType": "application/octet-stream",
             "contentEncoding": "base64",
             "description": "Encrypted with the document key, and encoded as a base64 string"
@@ -23,6 +24,7 @@
             "type": "number"
         },
         "documentKey": {
+            "type": "string",
             "contentMediaType": "application/octet-stream",
             "contentEncoding": "base64"
         },
