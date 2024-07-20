@@ -37,7 +37,7 @@ async function traverseDirectory(dir: string, base?: string, outPaths: string[] 
         const realPath = join("src/api/schemas", path);
 
         // compile the paths
-        const ts = await compileFromFile(realPath, {cwd: "src/api/schemas"});
+        const ts = await compileFromFile(realPath, {cwd: "src/api/schemas", additionalProperties: false});
         const compiled = JSON.stringify(await dereference(realPath));
 
         // write the new files
