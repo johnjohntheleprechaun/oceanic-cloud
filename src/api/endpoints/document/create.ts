@@ -5,8 +5,11 @@ import {DocumentCreate} from "../../schema-types/document-create";
 import {ConditionalCheckFailedException, DynamoDBClient, PutItemCommand} from "@aws-sdk/client-dynamodb";
 import assert from "assert";
 import {marshall} from "@aws-sdk/util-dynamodb";
+import addFormats from "ajv-formats";
 
-const verifier = new Ajv().compile(documentCreateSchema);
+const ajv = new Ajv();
+addFormats(ajv);
+const verifier = ajv.compile(documentCreateSchema);
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
     const body: DocumentCreate = JSON.parse(event.body || "{}");
