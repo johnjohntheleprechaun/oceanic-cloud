@@ -7,6 +7,9 @@
         },
         "type": {
             "type": "string"
+        },
+        "signedUrls": {
+            "$ref": "url-pair.json"
         }
     },
     "required": [

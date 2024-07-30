@@ -28,9 +28,8 @@
             "contentMediaType": "application/octet-stream",
             "contentEncoding": "base64"
         },
-        "signedUrl": {
-            "type": "string",
-            "format": "uri"
+        "signedUrls": {
+            "$ref": "url-pair.json"
         },
         "attachments": {
             "type": "array",
@@ -52,6 +51,6 @@
         "created",
         "updated",
         "documentKey",
-        "signedUrl"
+        "signedUrls"
     ]
 }
