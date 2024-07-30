@@ -43,7 +43,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ConditionExpression: "attribute_not_exists(id)",
     });
     try {
-        let resp = await dynamoClient.send(putCommand);
+        const resp = await dynamoClient.send(putCommand);
     }
     catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
