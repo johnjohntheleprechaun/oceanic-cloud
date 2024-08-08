@@ -62,7 +62,7 @@ paths:
       x-lambda-entry: document/create.ts
       x-lambda-dependencies:
         - document-metadata-write
-        - cloudfront-signing
+        - s3-signing
       summary: Create a new document.
       tags:
         - documents
@@ -89,7 +89,7 @@ paths:
       x-lambda-entry: document/get.ts
       x-lambda-dependencies:
         - document-metadata-read
-        - cloudfront-signing
+        - s3-signing
       summary: Get document metadata.
       tags:
         - documents

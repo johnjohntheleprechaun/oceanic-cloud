@@ -9,5 +9,5 @@ Attaches a policy to the lambda functions role that allows it to read document m
 #### `document-metadata-write`
 Attaches a policy to the lambda functions role that allows it to write document metadata in DynamoDB, and puts the table name in an environment variable called `DYNAMO_TABLE`.
 
-#### `cloudfront-signing`
-Grants access to the cloudfront URL signing key as an environment variable named `CLOUDFRONT_PRIVATE_KEY`, and the key group id as `CLOUDFRONT_KEY_GROUP`.
+#### `s3-signing`
+Gives the function's role access to the S3 bucket, so that the urls can be signed with the functions credentials. It also puts the name of the S3 bucket in an environment variable called `S3_BUCKET`.

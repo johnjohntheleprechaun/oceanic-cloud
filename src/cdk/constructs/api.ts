@@ -1,5 +1,4 @@
-import {CognitoUserPoolsAuthorizer, Cors, LambdaIntegration, RestApi} from "aws-cdk-lib/aws-apigateway";
-import {Certificate} from 'aws-cdk-lib/aws-certificatemanager';
+import {CognitoUserPoolsAuthorizer, LambdaIntegration, RestApi} from "aws-cdk-lib/aws-apigateway";
 import {Construct} from "constructs";
 import {OceanicUsers} from "./users";
 import {lambdaDefaults} from "../oceanic-cloud-stack";
@@ -12,6 +11,7 @@ import {readFileSync} from "fs";
 import {AllowedMethods, CachePolicy, Distribution, KeyGroup, OriginRequestPolicy, PublicKey, ResponseHeadersPolicy} from "aws-cdk-lib/aws-cloudfront";
 import {HttpOrigin, RestApiOrigin, S3Origin} from "aws-cdk-lib/aws-cloudfront-origins";
 import {CfnOutput, Stack} from "aws-cdk-lib";
+import {iamUUIDWildcard} from "../utils/constants";
 
 interface OceanicApiProps {
     isProd: boolean;
@@ -91,7 +91,21 @@ export class OceanicApi extends Construct {
                         })
                     ]
                 })
-            })
+            }),
+            documentReadWrite: new Policy(this, "document-read-write", {
+                document: new PolicyDocument({
+                    statements: [
+                        new PolicyStatement({
+                            effect: Effect.ALLOW,
+                            actions: ["s3:GetObject", "s3:PutObject"],
+                            resources: [
+                                `${this.storage.bucket.bucketArn}/${iamUUIDWildcard}/documents/${iamUUIDWildcard}/content`, // {userId}/documents/{documentId}
+                                `${this.storage.bucket.bucketArn}/${iamUUIDWildcard}/documents/${iamUUIDWildcard}/attachments/${iamUUIDWildcard}`
+                            ],
+                        }),
+                    ],
+                }),
+            }),
         };
 
         this.loadApiDefinition("src/api/definition.yml", "src/api/endpoints");
@@ -185,10 +199,8 @@ export class OceanicApi extends Construct {
                         if (dependency.startsWith("document-metadata-")) {
                             environment["DYNAMO_TABLE"] = this.storage.table.tableName;
                         }
-                        else if (dependency === "cloudfront-signing") {
-                            environment["CLOUDFRONT_PRIVATE_KEY"] = this.cloudfrontPrivateKey;
-                            //environment["CLOUDFRONT_DOMAIN"] = this.distribution.domainName;
-                            environment["CLOUDFRONT_KEY_GROUP"] = this.keyGroup.keyGroupId;
+                        else if (dependency === "s3-signing") {
+                            environment["S3_BUCKET"] = this.storage.bucket.bucketName;
                         }
                     }
 
@@ -211,6 +223,9 @@ export class OceanicApi extends Construct {
                                 break;
                             case "document-metadata-write":
                                 this.lambdaPolicies.documentMetadataWrite.attachToRole(lambdaFunction.role);
+                                break;
+                            case "s3-signing":
+                                this.lambdaPolicies.documentReadWrite.attachToRole(lambdaFunction.role);
                                 break;
                         }
                     }
