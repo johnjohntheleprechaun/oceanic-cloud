@@ -1,52 +1,80 @@
-import { AttributeValue, DynamoDBClient, GetItemCommand } from "@aws-sdk/client-dynamodb";
-import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult, Context } from "aws-lambda";
-import { unmarshall } from "@aws-sdk/util-dynamodb";
-import { DocumentInfo, DocumentAccess } from "../../types/dynamo-types";
-import { signDocumentUrls } from "../../utils/signer";
+import {DynamoDBClient, GetItemCommand} from "@aws-sdk/client-dynamodb";
+import {APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult, Context} from "aws-lambda";
+import {unmarshall} from "@aws-sdk/util-dynamodb";
+import {Document} from "../../schema-types/document";
+import {signUrls} from "../../utils/signer";
+import {Attachment} from "../../schema-types/attachment";
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
     if (
         !event.requestContext.authorizer || !event.requestContext.authorizer.claims.sub ||
-        !event.pathParameters || !event.pathParameters.userId || !event.pathParameters.documentId
+        !event.pathParameters || !event.pathParameters.user || !event.pathParameters.document
     ) {
         return {
             statusCode: 500,
-            body: ""
+            body: "some shit broken"
         }
     }
     const sub = event.requestContext.authorizer.claims.sub as string;
-    const documentId = event.pathParameters.documentId;
-    const userId = event.pathParameters.userId;
+    const documentId = event.pathParameters.document;
+    const userId = event.pathParameters.user === "me" ? event.requestContext.authorizer.claims.sub as string : event.pathParameters.user; // I know this seems redundant, but it's here because in the future document sharing will be allowed (hopefully....)
 
     // get the document info
     const dynamoClient = new DynamoDBClient();
     const getDocumentCommand = new GetItemCommand({
-        TableName: process.env.DATABASE_NAME,
+        TableName: process.env.DYNAMO_TABLE,
         Key: {
-            user: { S: userId },
-            id: { S: `document:${documentId}`}
+            dataTypeUser: {S: `documents:${userId}`},
+            id: {S: documentId}
         }
     });
-    const resp = await dynamoClient.send(getDocumentCommand);
-    const documentInfo = unmarshall(resp.Item as Record<string, AttributeValue>) as DocumentInfo;
+    const resp = await dynamoClient.send(getDocumentCommand) as Record<string, any>;
+    const documentInfo = unmarshall(resp.Item) as any;
 
-    if (userId === sub || documentInfo.authorizedUsers.find(a => a.user === sub)) {
-        // congrats you have access, now sign all the URLs
-        const permissions: DocumentAccess = userId === sub ? { read: true, write: true } : documentInfo.authorizedUsers.find(a => a.user === sub)?.permissions as DocumentAccess;
-        const signedUrls = signDocumentUrls(documentInfo, permissions);
-        
+    if (userId === sub) {
+        // congrats you have access!
+        const response: Document = {
+            owner: sub,
+            id: documentId,
+            ...documentInfo.title && {title: documentInfo.title.toString("base64")},
+            type: documentInfo.type,
+            created: documentInfo.created,
+            updated: documentInfo.updated,
+            documentKey: documentInfo.documentKey.toString("base64"),
+            signedUrls: await signUrls({owner: sub, document: documentId, canWrite: true}),
+            ...documentInfo.attachments && {attachments: await signAttachments(documentInfo, false)},
+            ...documentInfo.authorizedUsers && {authorizedUsers: documentInfo.authorizedUsers},
+        }
+
         return {
             statusCode: 200,
-            body: JSON.stringify({
-                document: documentInfo,
-                signedUrls: signedUrls
-            })
+            body: JSON.stringify(response),
         };
     }
     else {
         return {
             statusCode: 403,
-            body: ""
+            body: "unauthorized",
         };
     }
 };
+
+async function signAttachments(document: any, canWrite: boolean): Promise<Attachment[]> {
+    if (!document.attachments) {
+        return [];
+    }
+    const signed: Attachment[] = [];
+    for (const attachment of document.attachments) {
+        signed.push({
+            id: attachment.id,
+            type: attachment.type,
+            signedUrls: await signUrls({
+                owner: document.dataTypeUser.split(":").pop() as string,
+                document: document.id,
+                attachment: attachment.id,
+                canWrite,
+            }),
+        });
+    }
+    return signed;
+}

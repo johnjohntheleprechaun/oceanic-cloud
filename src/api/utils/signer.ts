@@ -1,45 +1,27 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { DocumentAccess, DocumentInfo } from "../types/dynamo-types";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import {UrlPair} from "../schema-types/url-pair";
+import {GetObjectCommand, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
+import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 
-const signerOptions = {
-    expiresIn: 3600
+interface SignerOptions {
+    owner: string,
+    document: string,
+    canWrite: boolean,
+    attachment?: string,
 }
+const client = new S3Client();
 
-export async function signDocumentUrls(documentInfo: DocumentInfo, permissions: DocumentAccess) {
-    const documentId = documentInfo.id.replace(/^document:/, "");
-    const s3Client = new S3Client();
-    const signedUrls: SignedUrlCollection = {};
-    
-    // now sign the document url
-    const documentKey = `${documentInfo.user}/documents/${documentInfo.id.replace(/^document:/, "")}`;
-    const fetchDocumentCommand = new GetObjectCommand({
-        Bucket: process.env.DOCUMENT_BUCKET,
-        Key: documentKey
+export async function signUrls(options: SignerOptions): Promise<UrlPair> {
+    const objectKey = `${options.owner}/documents/${options.document}${options.attachment ? `/attachments/${options.attachment}` : "/content"}`;
+    const getCommand = new GetObjectCommand({
+        Bucket: process.env["S3_BUCKET"],
+        Key: objectKey,
     });
-    signedUrls[documentId] = {
-        read: await getSignedUrl(s3Client, fetchDocumentCommand, signerOptions)
+    const putCommand = new PutObjectCommand({
+        Bucket: process.env["S3_BUCKET"],
+        Key: objectKey,
+    });
+    return {
+        read: await getSignedUrl(client, getCommand),
+        ...(options.canWrite && {write: await getSignedUrl(client, putCommand)}),
     };
-
-    if (permissions.write) {
-        // add a write URL if you've got permissions
-        const putDocumentCommand = new PutObjectCommand({
-            Bucket: process.env.DOCUMENT_BUCKET,
-            Key: documentKey
-        });
-        signedUrls[documentId].write = await getSignedUrl(s3Client, putDocumentCommand, signerOptions);
-    }
-
-    // now for the attachments
-    for (const attachment of documentInfo.attachments) {
-        const attachmentKey = `${documentInfo.user}/attachments/${attachment}`;
-        const getAttachmentCommand = new GetObjectCommand({
-            Bucket: process.env.DOCUMENT_BUCKET,
-            Key: attachmentKey
-        });
-        // you shouldn't ever need to write an attachment
-        signedUrls[attachment] = {
-            read: await getSignedUrl(s3Client, getAttachmentCommand, signerOptions)
-        };
-    }
 }
