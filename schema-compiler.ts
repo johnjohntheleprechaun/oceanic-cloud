@@ -37,11 +37,11 @@ async function traverseDirectory(dir: string, base?: string, outPaths: string[] 
         const realPath = join("src/api/schemas", path);
 
         // compile the paths
-        const ts = await compileFromFile(realPath, {cwd: "src/api/schemas", additionalProperties: false});
         const compiled = JSON.stringify(await dereference(realPath));
+        await writeFile(join("src/api/compiled-schemas", path), compiled)
 
         // write the new files
+        const ts = await compileFromFile(join("src/api/compiled-schemas", path), {additionalProperties: false});
         await writeFile(join("src/api/schema-types", parse(path).name + ".d.ts"), ts);
-        await writeFile(join("src/api/compiled-schemas", path), compiled)
     }
 })();
