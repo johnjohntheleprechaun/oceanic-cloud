@@ -49,14 +49,6 @@ export class OceanicApi extends Construct {
         this.cognitoAuthorizer = new CognitoUserPoolsAuthorizer(this, "user-pool-authorizer", {
             cognitoUserPools: [this.cognito.userPool],
         });
-        this.keyGroup = new KeyGroup(this, "url-key-group", {
-            items: [
-                new PublicKey(this, "pubkey", {
-                    encodedKey: readFileSync("public_key.pem").toString()
-                })
-            ]
-        });
-        this.cloudfrontPrivateKey = readFileSync("private_key.pem").toString();
 
         // define lambda policies
         this.lambdaPolicies = {
@@ -129,9 +121,6 @@ export class OceanicApi extends Construct {
                     origin: new S3Origin(this.storage.bucket, {
                         originAccessIdentity: this.storage.originAccessIdentity
                     }),
-                    trustedKeyGroups: [
-                        this.keyGroup
-                    ]
                 }
             }
         });
