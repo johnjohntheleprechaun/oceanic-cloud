@@ -3,9 +3,21 @@ import {GetObjectCommand, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 
 interface SignerOptions {
+    /**
+     * The UUID of the document's owner
+     */
     owner: string,
+    /**
+     * The document's id
+     */
     document: string,
+    /**
+     * Whether this should be writeable
+     */
     canWrite: boolean,
+    /**
+     * The id of the attachment, if you're signing an attachment
+     */
     attachment?: string,
 }
 const client = new S3Client();
