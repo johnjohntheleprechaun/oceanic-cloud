@@ -2,8 +2,7 @@ import {DynamoDBClient, GetItemCommand} from "@aws-sdk/client-dynamodb";
 import {APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult, Context} from "aws-lambda";
 import {unmarshall} from "@aws-sdk/util-dynamodb";
 import {Document} from "../../schema-types/document";
-import {signUrls} from "../../utils/signer";
-import {Attachment} from "../../schema-types/attachment";
+import {signAttachments, signUrls} from "../../utils/signer";
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
     if (
@@ -42,7 +41,9 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             updated: documentInfo.updated,
             documentKey: documentInfo.documentKey.toString("base64"),
             signedUrls: await signUrls({owner: sub, document: documentId, canWrite: true}),
-            ...documentInfo.attachments && {attachments: await signAttachments(documentInfo, false)},
+            ...documentInfo.attachments && {
+                attachments: await signAttachments(sub, documentId, documentInfo.attachments, false)
+            },
             ...documentInfo.authorizedUsers && {authorizedUsers: documentInfo.authorizedUsers},
         }
 
@@ -58,23 +59,3 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         };
     }
 };
-
-async function signAttachments(document: any, canWrite: boolean): Promise<Attachment[]> {
-    if (!document.attachments) {
-        return [];
-    }
-    const signed: Attachment[] = [];
-    for (const attachment of document.attachments) {
-        signed.push({
-            id: attachment.id,
-            type: attachment.type,
-            signedUrls: await signUrls({
-                owner: document.dataTypeUser.split(":").pop() as string,
-                document: document.id,
-                attachment: attachment.id,
-                canWrite,
-            }),
-        });
-    }
-    return signed;
-}

@@ -1,6 +1,7 @@
 import {UrlPair} from "../schema-types/url-pair";
 import {GetObjectCommand, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
+import {Attachment} from "../schema-types/attachment";
 
 interface SignerOptions {
     /**
@@ -36,4 +37,21 @@ export async function signUrls(options: SignerOptions): Promise<UrlPair> {
         read: await getSignedUrl(client, getCommand),
         ...(options.canWrite && {write: await getSignedUrl(client, putCommand)}),
     };
+}
+
+export async function signAttachments(owner: string, documentId: string, attachments: Attachment[], canWrite: boolean): Promise<Attachment[]> {
+    const signed: Attachment[] = [];
+    for (const attachment of attachments) {
+        signed.push({
+            id: attachment.id,
+            type: attachment.type,
+            signedUrls: await signUrls({
+                owner,
+                document: documentId,
+                attachment: attachment.id,
+                canWrite,
+            }),
+        });
+    }
+    return signed;
 }
