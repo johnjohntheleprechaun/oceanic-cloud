@@ -24,7 +24,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     const dynamoClient = new DynamoDBClient();
     assert(event.requestContext.authorizer);
     const userId: string = event.requestContext.authorizer.claims.sub;
-    const documentId: string = document.id ? document.id : crypto.randomUUID(); // should implement a check to verify that body.id is a valid uuid (technically doesn't matter but I wanna do it anyway)
+    const documentId: string = document.id ? document.id : crypto.randomUUID(); // someone should implement a check to verify that body.id is a valid uuid (technically doesn't matter but I wanna do it anyway)
 
     // add the document to dynamodb
     const putCommand = new PutItemCommand({
