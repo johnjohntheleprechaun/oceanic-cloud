@@ -6,8 +6,6 @@ import {ConditionalCheckFailedException, DynamoDBClient, PutItemCommand} from "@
 import assert from "assert";
 import {marshall} from "@aws-sdk/util-dynamodb";
 import addFormats from "ajv-formats";
-import {DocumentCreateResponse} from "../../schema-types/document-create-response";
-import {signAttachments, signUrls} from "../../utils/signer";
 
 const ajv = new Ajv();
 addFormats(ajv);
