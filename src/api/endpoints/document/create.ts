@@ -19,27 +19,41 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             body: "request does not match the schema",
         };
     }
+    if (!event.pathParameters || !event.pathParameters.user) {
+        return {
+            statusCode: 500,
+            body: "path parameter setup is fucked",
+        }
+    }
 
     // set up vars for stuff :3
     const dynamoClient = new DynamoDBClient();
     assert(event.requestContext.authorizer);
     const userId: string = event.requestContext.authorizer.claims.sub;
+    if (event.pathParameters.user !== userId) {
+        return {
+            statusCode: 403,
+            body: "you can't create a document for someone else silly goose :p",
+        }
+    }
     const documentId: string = document.id ? document.id : crypto.randomUUID(); // someone should implement a check to verify that body.id is a valid uuid (technically doesn't matter but I wanna do it anyway)
 
+    const timeNow = Date.now();
+    const newDocument = {
+        dataTypeUser: `documents:${userId}`,
+        id: documentId,
+        ...document.title && {title: Buffer.from(document.title, "base64")},
+        type: document.type,
+        created: document.created ? document.created : timeNow,
+        updated: document.updated ? document.updated : timeNow,
+        documentKey: Buffer.from(document.documentKey, "base64"),
+        ...document.attachments && {attachments: document.attachments},
+        ...document.authorizedUsers && {authorizedUsers: document.authorizedUsers},
+    };
     // add the document to dynamodb
     const putCommand = new PutItemCommand({
         TableName: process.env["DYNAMO_TABLE"],
-        Item: marshall({
-            dataTypeUser: `documents:${userId}`,
-            id: documentId,
-            ...document.title && {title: Buffer.from(document.title, "base64")},
-            type: document.type,
-            created: document.created ? document.created : Date.now(),
-            updated: document.updated ? document.updated : Date.now(),
-            documentKey: Buffer.from(document.documentKey, "base64"),
-            ...document.attachments && {attachments: document.attachments},
-            ...document.authorizedUsers && {authorizedUsers: document.authorizedUsers},
-        }),
+        Item: marshall(newDocument),
         ConditionExpression: "attribute_not_exists(id)",
     });
     try {
