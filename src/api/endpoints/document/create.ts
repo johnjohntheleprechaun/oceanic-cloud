@@ -6,6 +6,8 @@ import {ConditionalCheckFailedException, DynamoDBClient, PutItemCommand} from "@
 import assert from "assert";
 import {marshall} from "@aws-sdk/util-dynamodb";
 import addFormats from "ajv-formats";
+import {Document} from "../../schema-types/document";
+import {signUrls} from "../../utils/signer";
 
 const ajv = new Ajv();
 addFormats(ajv);
@@ -30,7 +32,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     const dynamoClient = new DynamoDBClient();
     assert(event.requestContext.authorizer);
     const userId: string = event.requestContext.authorizer.claims.sub;
-    if (event.pathParameters.user !== userId) {
+    if (event.pathParameters.user !== "me" && event.pathParameters.user !== userId) {
         return {
             statusCode: 403,
             body: "you can't create a document for someone else silly goose :p",
@@ -76,6 +78,17 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
 
     return {
         statusCode: 200,
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+            owner: userId,
+            id: newDocument.id,
+            title: newDocument.title?.toString("base64"),
+            type: newDocument.type,
+            created: newDocument.created,
+            updated: newDocument.updated,
+            documentKey: newDocument.documentKey.toString("base64"),
+            signedUrls: await signUrls({owner: userId, document: newDocument.id, canWrite: true}),
+            attachments: newDocument.attachments?.map(attachment => signUrls({owner: userId, document: newDocument.id, attachment: attachment.id, canWrite: true})),
+            authorizedUsers: newDocument.authorizedUsers?.map(user => user.id),
+        } as Document),
     };
 }
