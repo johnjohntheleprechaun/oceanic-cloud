@@ -2,7 +2,7 @@ import {FileInfo, dereference} from "@apidevtools/json-schema-ref-parser";
 import {existsSync} from "fs";
 import {mkdir, readFile, readdir, stat, writeFile} from "fs/promises";
 import {compile, compileFromFile} from "json-schema-to-typescript";
-import {join, parse, relative} from "path";
+import {basename, dirname, join, parse, relative} from "path";
 
 // traverse the schema file tree
 async function traverseDirectory(dir: string, base?: string, outPaths: string[] = []) {
@@ -36,12 +36,24 @@ async function traverseDirectory(dir: string, base?: string, outPaths: string[] 
     for (const path of relativePaths) {
         const realPath = join("src/api/schemas", path);
 
+        // create subdirectories if needed
+        if (dirname(realPath) !== "src/api/schemas") {
+            const compiledPath = join("src/api/compiled-schemas", dirname(path));
+            const typesPath = join("src/api/schema-types", dirname(path));
+            if (!existsSync(compiledPath)) {
+                await mkdir(compiledPath);
+            }
+            if (!existsSync(typesPath)) {
+                await mkdir(typesPath);
+            }
+        }
+
         // compile the paths
         const compiled = JSON.stringify(await dereference(realPath));
         await writeFile(join("src/api/compiled-schemas", path), compiled)
 
         // write the new files
         const ts = await compileFromFile(join("src/api/compiled-schemas", path), {additionalProperties: false});
-        await writeFile(join("src/api/schema-types", parse(path).name + ".d.ts"), ts);
+        await writeFile(join("src/api/schema-types", dirname(path), parse(path).name + ".d.ts"), ts);
     }
 })();
