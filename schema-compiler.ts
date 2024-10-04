@@ -21,6 +21,18 @@ async function traverseDirectory(dir: string, base?: string, outPaths: string[] 
     return outPaths;
 }
 
+function untitle(schema: any, base: boolean): any {
+    for (const key in schema) {
+        if (key === "title" && !base) {
+            delete schema[key];
+        }
+        else if (typeof schema[key] === "object") {
+            untitle(schema[key], false);
+        }
+    }
+    return schema;
+}
+
 // do thing to the thing to make the things or something
 (async () => {
     const relativePaths = await traverseDirectory("src/api/schemas");
@@ -49,11 +61,14 @@ async function traverseDirectory(dir: string, base?: string, outPaths: string[] 
         }
 
         // compile the paths
-        const compiled = JSON.stringify(await dereference(realPath));
+        const compiled = JSON.stringify(untitle(await dereference(realPath), true));
         await writeFile(join("src/api/compiled-schemas", path), compiled)
 
         // write the new files
-        const ts = await compileFromFile(join("src/api/compiled-schemas", path), {additionalProperties: false});
+        const ts = await compileFromFile(join("src/api/compiled-schemas", path), {
+            additionalProperties: false,
+            declareExternallyReferenced: false,
+        });
         await writeFile(join("src/api/schema-types", dirname(path), parse(path).name + ".d.ts"), ts);
     }
 })();
