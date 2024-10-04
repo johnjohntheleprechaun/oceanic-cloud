@@ -27,7 +27,8 @@ function untitle(schema: any, base: boolean): any {
             delete schema[key];
         }
         else if (typeof schema[key] === "object") {
-            untitle(schema[key], false);
+            const ignore = key === "properties";
+            untitle(schema[key], ignore);
         }
     }
     return schema;
