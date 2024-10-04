@@ -90,7 +90,7 @@ export class OceanicStorage extends Construct {
                 noncurrentVersionsToRetain: 3,
                 noncurrentVersionExpiration: Duration.days(7) // This is mainly intended to purge objects with a delete tag
             },
-            // todo: add version retaining settings based on various criteria (like object size or tags)
+            // todo: add version retaining settings based on various criteria (like object size or tags) <- what the fuck does this mean lol?
         ]
     }
 }
