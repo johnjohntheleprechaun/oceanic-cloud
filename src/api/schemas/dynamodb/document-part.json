@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "dynamo document part",
+    "description": "the part of a document that's forwarded to LSIs",
+    "type": "object",
+    "properties": {
+        "dataTypeUser": {
+            "type": "string",
+            "pattern": "^documents:[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$"
+        },
+        "id": {
+            "$ref": "../uuid.json"
+        },
+        "documentTitle": {
+            "isBuffer": true
+        },
+        "documentType": {
+            "type": "string"
+        },
+        "documentCreated": {
+            "type": "number"
+        },
+        "documentUpdated": {
+            "type": "number"
+        },
+        "documentKey": {
+            "isBuffer": true
+        }
+    },
+    "required": [
+        "dataTypeUser",
+        "id",
+        "documentType",
+        "documentCreated",
+        "documentUpdated",
+        "documentKey"
+    ]
+}
