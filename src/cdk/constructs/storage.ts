@@ -1,6 +1,6 @@
 import {Duration, RemovalPolicy} from "aws-cdk-lib";
 import {OriginAccessIdentity} from "aws-cdk-lib/aws-cloudfront";
-import {AttributeType, TableV2} from "aws-cdk-lib/aws-dynamodb";
+import {AttributeType, ProjectionType, TableV2} from "aws-cdk-lib/aws-dynamodb";
 import {CanonicalUserPrincipal, PolicyStatement} from "aws-cdk-lib/aws-iam";
 import {Bucket, HttpMethods, LifecycleRule} from "aws-cdk-lib/aws-s3";
 import {Construct} from "constructs";
@@ -45,6 +45,38 @@ export class OceanicStorage extends Construct {
             removalPolicy: props?.isProd ? RemovalPolicy.RETAIN : RemovalPolicy.DESTROY,
             partitionKey: {name: "dataTypeUser", type: AttributeType.STRING},
             sortKey: {name: "id", type: AttributeType.STRING},
+            localSecondaryIndexes: [
+                {
+                    indexName: "documentUpdatedSort",
+                    sortKey: {
+                        name: "documentUpdated",
+                        type: AttributeType.NUMBER,
+                    },
+                    projectionType: ProjectionType.INCLUDE,
+                    nonKeyAttributes: [
+                        "id",
+                        "documentTitle",
+                        "documentType",
+                        "documentCreated",
+                        "documentKey",
+                    ],
+                },
+                {
+                    indexName: "documentCreatedSort",
+                    sortKey: {
+                        name: "documentUpdated",
+                        type: AttributeType.NUMBER,
+                    },
+                    projectionType: ProjectionType.INCLUDE,
+                    nonKeyAttributes: [
+                        "id",
+                        "documentTitle",
+                        "documentType",
+                        "documentUpdated",
+                        "documentKey",
+                    ],
+                },
+            ],
         });
     }
 
