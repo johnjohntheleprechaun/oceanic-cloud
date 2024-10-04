@@ -1,7 +1,7 @@
 import {DynamoDBClient, GetItemCommand} from "@aws-sdk/client-dynamodb";
 import {APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult, Context} from "aws-lambda";
 import {unmarshall} from "@aws-sdk/util-dynamodb";
-import {Document} from "../../schema-types/document";
+import {DocumentInfo} from "../../schema-types/document";
 import {signAttachments, signUrls} from "../../utils/signer";
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
@@ -32,7 +32,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
 
     if (userId === sub) {
         // congrats you have access!
-        const response: Document = {
+        const response: DocumentInfo = {
             owner: sub,
             id: documentId,
             ...documentInfo.title && {title: documentInfo.title.toString("base64")},

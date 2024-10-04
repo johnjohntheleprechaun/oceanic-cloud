@@ -1,12 +1,12 @@
 import {APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult, Context} from "aws-lambda";
 import documentCreateSchema from "../../compiled-schemas/document-create.json";
 import Ajv from "ajv";
-import {DocumentCreate} from "../../schema-types/document-create";
+import {DocumentCreateRequest} from "../../schema-types/document-create";
 import {ConditionalCheckFailedException, DynamoDBClient, PutItemCommand} from "@aws-sdk/client-dynamodb";
 import assert from "assert";
 import {marshall} from "@aws-sdk/util-dynamodb";
 import addFormats from "ajv-formats";
-import {Document} from "../../schema-types/document";
+import {DocumentInfo} from "../../schema-types/document";
 import {signUrls} from "../../utils/signer";
 
 const ajv = new Ajv();
@@ -14,7 +14,7 @@ addFormats(ajv);
 const verifier = ajv.compile(documentCreateSchema);
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
-    const document: DocumentCreate = JSON.parse(event.body || "{}");
+    const document: DocumentCreateRequest = JSON.parse(event.body || "{}");
     if (!verifier(document)) {
         return {
             statusCode: 400,
@@ -89,6 +89,6 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             signedUrls: await signUrls({owner: userId, document: newDocument.id, canWrite: true}),
             attachments: newDocument.attachments?.map(attachment => signUrls({owner: userId, document: newDocument.id, attachment: attachment.id, canWrite: true})),
             authorizedUsers: newDocument.authorizedUsers?.map(user => user.id),
-        } as Document),
+        } as DocumentInfo),
     };
 }
