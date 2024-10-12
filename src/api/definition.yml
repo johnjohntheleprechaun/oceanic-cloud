@@ -17,6 +17,12 @@ components:
           - $ref: "schemas/uuid.json"
           - enum:
               - me
+  securitySchemes:
+    userPool:
+      type: "apiKey"
+      name: "Authorization"
+      in: "header"
+      x-amazon-apigateway-authtype: "cognito_user_pools"
 
 paths:
   /test:
@@ -37,6 +43,8 @@ paths:
 
   /users/{user}/documents:
     get:
+      security:
+        - userPool: []
       x-lambda-entry: document/list.ts
       x-lambda-dependencies:
         - document-metadata-read
@@ -59,6 +67,8 @@ paths:
         "403":
           description: The authenticated user doesn't match the `user` parameter. (You're only allowed to list your own documents)
     post:
+      security:
+        - userPool: []
       x-lambda-entry: document/create.ts
       x-lambda-dependencies:
         - document-metadata-write
@@ -86,6 +96,8 @@ paths:
 
   /users/{user}/documents/{document}:
     get:
+      security:
+        - userPool: []
       x-lambda-entry: document/get.ts
       x-lambda-dependencies:
         - document-metadata-read
@@ -114,6 +126,8 @@ paths:
         "404":
           description: The document doesn't exist. This will only be returned if the authenticated user *would've* had access, had it existed. In other words, if the they're the same user as the one specified in the `user` parameter.
     patch:
+      security:
+        - userPool: []
       x-lambda-entry: document/update.ts
       x-lambda-dependencies:
         - document-metadata-write

@@ -13,3 +13,4 @@ public_key.pem
 
 src/api/compiled-schemas
 src/api/schema-types
+src/api/definition.bundle.json

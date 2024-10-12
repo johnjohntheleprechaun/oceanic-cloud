@@ -1,4 +1,4 @@
-import {CognitoUserPoolsAuthorizer, LambdaIntegration, RestApi} from "aws-cdk-lib/aws-apigateway";
+import {CognitoUserPoolsAuthorizer, InlineApiDefinition, LambdaIntegration, RestApi, SpecRestApi} from "aws-cdk-lib/aws-apigateway";
 import {Construct} from "constructs";
 import {OceanicUsers} from "./users";
 import {lambdaDefaults} from "../oceanic-cloud-stack";
@@ -6,8 +6,7 @@ import path = require("path");
 import {OceanicStorage} from "./storage";
 import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs";
 import {Effect, Policy, PolicyDocument, PolicyStatement} from "aws-cdk-lib/aws-iam";
-import {parse} from "yaml";
-import {readFileSync} from "fs";
+import {readFileSync, writeFileSync} from "fs";
 import {AllowedMethods, CachePolicy, Distribution, KeyGroup, OriginRequestPolicy, PublicKey, ResponseHeadersPolicy} from "aws-cdk-lib/aws-cloudfront";
 import {HttpOrigin, RestApiOrigin, S3Origin} from "aws-cdk-lib/aws-cloudfront-origins";
 import {CfnOutput, Stack} from "aws-cdk-lib";
@@ -22,7 +21,7 @@ interface OceanicApiProps {
 }
 
 export class OceanicApi extends Construct {
-    api: RestApi;
+    api: SpecRestApi;
     apiVersion: string;
     private storage: OceanicStorage;
     private cognito: OceanicUsers;
@@ -36,19 +35,8 @@ export class OceanicApi extends Construct {
         super(scope, id)
         // API definition
         this.apiVersion = "0.1.0";
-        this.api = new RestApi(this, "rest-api", {
-            retainDeployments: props.isProd,
-            restApiName: `Oceanic ${props.isProd ? "Prod" : "Test"}`,
-            deployOptions: {
-                stageName: "v1"
-            },
-        });
-
         this.storage = props.storage;
         this.cognito = props.cognito;
-        this.cognitoAuthorizer = new CognitoUserPoolsAuthorizer(this, "user-pool-authorizer", {
-            cognitoUserPools: [this.cognito.userPool],
-        });
 
         // define lambda policies
         this.lambdaPolicies = {
@@ -100,7 +88,12 @@ export class OceanicApi extends Construct {
             }),
         };
 
-        this.loadApiDefinition("src/api/definition.yml", "src/api/endpoints");
+        const apiDefinition = this.loadApiDefinition("src/api/definition.bundle.json", "src/api/endpoints");
+        this.api = new SpecRestApi(this, "rest-api", {
+            apiDefinition,
+            deploy: true,
+            description: "I hope this works",
+        });
 
         this.distribution = new Distribution(this, "distribution", {
             defaultBehavior: {
@@ -128,47 +121,45 @@ export class OceanicApi extends Construct {
     }
 
     /**
-     * Create an API from a custom OpenAPI file. To be clear, this is *not* the same as defining an API gateway with a file. This is fully custom, with the reason for using OpenAPI being easier documentation and better code organization.
-     * @param baseApi The api to create endpoints on
-     * @param templatePath The path of the OpenAPI template file
-     * @param baseFunctionPath The base path for lambda function entrypoints in x-lambda-entry
-     */
+     * Modify the API definition to work with API gateway
+     * @param templatePath where the OpenAPI template file is
+     * @param baseFunctionPath where lambda functions are located
+     **/
     loadApiDefinition(templatePath: string, baseFunctionPath: string) {
-        // load and parse template file
-        const templateContent = readFileSync(templatePath).toString();
-        const template = parse(templateContent);
+        const templateFile = readFileSync(templatePath).toString();
+        const template = JSON.parse(templateFile);
+
+        // add the cognito authorizer
+        const authorizerDefinition = {
+            "type": "http",
+            "scheme": "bearer",
+            "x-amazon-apigateway-authtype": "cognito_user_pools",
+            "x-amazon-apigateway-authorizer": {
+                "type": "cognito_user_pools",
+                "providerARNs": [
+                    this.cognito.userPool.userPoolArn,
+                ],
+            },
+        };
+
+        if (template["components"]["securitySchemes"]) {
+            for (const security in template["components"]["securitySchemes"]) {
+                const definition = template["components"]["securitySchemes"][security];
+                if (definition["x-amazon-apigateway-authtype"] === authorizerDefinition["x-amazon-apigateway-authtype"]) {
+                    template["components"]["securitySchemes"][security]["x-amazon-apigateway-authorizer"] = authorizerDefinition["x-amazon-apigateway-authorizer"];
+                }
+            }
+        }
 
         const functions: {[key: string]: NodejsFunction} = {};
-        // iterate through each defined path (unless it's explicitly exluded)
         for (const resourcePath in template.paths) {
             const resourceDefinition = template.paths[resourcePath];
-
+            // sometimes a path is ignored, I guess
             if (resourceDefinition["x-generation-exclude"]) {
-                // don't add this path at all
+                delete template.paths[resourcePath];
                 continue;
             }
 
-            // climb the rest api resource tree
-            const pathParts = resourcePath.split("/")
-            for (let i = 0; i < pathParts.length; i++) {
-                if (pathParts[i] === "") {
-                    pathParts.splice(i, 1);
-                }
-            }
-            console.log(pathParts);
-            let resource = this.api.root;
-            for (const part of pathParts) {
-                // create a new resource if it doesn't already exist
-                const next = resource.getResource(part);
-                if (!next) {
-                    resource = resource.addResource(part);
-                }
-                else {
-                    resource = next;
-                }
-            }
-
-            // load functions for each method under the path
             for (const method in resourceDefinition) {
                 // extract the node entry point for the lambda function
                 const entry = path.join(baseFunctionPath, resourceDefinition[method]["x-lambda-entry"]);
@@ -181,6 +172,7 @@ export class OceanicApi extends Construct {
 
                 // create the lambda function
                 let lambdaFunction: NodejsFunction;
+                // if you haven't used this function before (it's an edge case that you'd ever reuse a function but... here we are. I'll be honest I don't remember why I decided to implement it)
                 if (!functions[name]) {
                     // set up environment variables
                     const environment: any = {};
@@ -214,6 +206,7 @@ export class OceanicApi extends Construct {
                                 this.lambdaPolicies.documentMetadataWrite.attachToRole(lambdaFunction.role);
                                 break;
                             case "s3-signing":
+                                // cause s3 signing is done with the lambda function's role, so it needs to have these permissions
                                 this.lambdaPolicies.documentReadWrite.attachToRole(lambdaFunction.role);
                                 break;
                         }
@@ -223,12 +216,15 @@ export class OceanicApi extends Construct {
                     lambdaFunction = functions[name];
                 }
 
-                // add the lambda function to the rest api
-                const integration = new LambdaIntegration(lambdaFunction);
-                resource.addMethod(method, integration, {
-                    authorizer: this.cognitoAuthorizer,
-                });
+                // now we add the lambda function to the thing?
+                resourceDefinition[method]["x-amazon-apigateway-integration"] = {
+                    httpMethod: "POST", // lambda is always POST
+                    passthroughBehavior: "WHEN_NO_MATCH",
+                    type: "aws",
+                    uri: `arn:aws:apigateway:${Stack.of(this).region}:lambda:path/2015-03-31/functions/${lambdaFunction.functionArn}/invocations`, // dear lord please let this work
+                };
             }
         }
+        return new InlineApiDefinition(template);
     }
 }
