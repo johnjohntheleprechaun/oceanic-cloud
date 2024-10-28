@@ -1,8 +1,8 @@
-import {DocumentCreate} from "../schema-types/document-create"
+import {DocumentCreateRequest} from "../schema-types/document-create"
 
 async function documentCreateTest() {
     const uuid = crypto.randomUUID();
-    const request: DocumentCreate = {
+    const request: DocumentCreateRequest = {
         type: "messages-journal",
         documentKey: "",
         id: uuid,
