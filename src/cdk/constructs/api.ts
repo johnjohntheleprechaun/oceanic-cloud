@@ -1,15 +1,15 @@
-import {CognitoUserPoolsAuthorizer, InlineApiDefinition, LambdaIntegration, RestApi, SpecRestApi} from "aws-cdk-lib/aws-apigateway";
+import {CognitoUserPoolsAuthorizer, IRestApi, InlineApiDefinition, LambdaIntegration, RestApi, SpecRestApi} from "aws-cdk-lib/aws-apigateway";
 import {Construct} from "constructs";
 import {OceanicUsers} from "./users";
 import {lambdaDefaults} from "../oceanic-cloud-stack";
 import path = require("path");
 import {OceanicStorage} from "./storage";
 import {NodejsFunction} from "aws-cdk-lib/aws-lambda-nodejs";
-import {Effect, Policy, PolicyDocument, PolicyStatement} from "aws-cdk-lib/aws-iam";
+import {Effect, Policy, PolicyDocument, PolicyStatement, ServicePrincipal} from "aws-cdk-lib/aws-iam";
 import {readFileSync, writeFileSync} from "fs";
 import {AllowedMethods, CachePolicy, Distribution, KeyGroup, OriginRequestPolicy, PublicKey, ResponseHeadersPolicy} from "aws-cdk-lib/aws-cloudfront";
 import {HttpOrigin, RestApiOrigin, S3Origin} from "aws-cdk-lib/aws-cloudfront-origins";
-import {CfnOutput, Stack} from "aws-cdk-lib";
+import {CfnOutput, Names, Stack} from "aws-cdk-lib";
 import {iamUUIDWildcard} from "../utils/constants";
 
 interface OceanicApiProps {
@@ -88,12 +88,15 @@ export class OceanicApi extends Construct {
             }),
         };
 
-        const apiDefinition = this.loadApiDefinition("src/api/definition.bundle.json", "src/api/endpoints");
+        const loadedApi = this.loadApiDefinition("src/api/definition.bundle.json", "src/api/endpoints");
         this.api = new SpecRestApi(this, "rest-api", {
-            apiDefinition,
+            apiDefinition: loadedApi.definition,
             deploy: true,
             description: "I hope this works",
         });
+        for (const func of loadedApi.permissionFuncs) {
+            func(this.api);
+        }
 
         this.distribution = new Distribution(this, "distribution", {
             defaultBehavior: {
@@ -152,6 +155,7 @@ export class OceanicApi extends Construct {
         }
 
         const functions: {[key: string]: NodejsFunction} = {};
+        const permissionFuncs: ((api: IRestApi) => void)[] = [];
         for (const resourcePath in template.paths) {
             const resourceDefinition = template.paths[resourcePath];
             // sometimes a path is ignored, I guess
@@ -219,12 +223,26 @@ export class OceanicApi extends Construct {
                 // now we add the lambda function to the thing?
                 resourceDefinition[method]["x-amazon-apigateway-integration"] = {
                     httpMethod: "POST", // lambda is always POST
-                    passthroughBehavior: "WHEN_NO_MATCH",
-                    type: "aws",
+                    type: "AWS_PROXY",
                     uri: `arn:aws:apigateway:${Stack.of(this).region}:lambda:path/2015-03-31/functions/${lambdaFunction.functionArn}/invocations`, // dear lord please let this work
                 };
+
+                // now we add the right permissions to API gateway
+                permissionFuncs.push((api) => {
+                    lambdaFunction.addPermission(name + resourcePath, {
+                        principal: new ServicePrincipal("apigateway.amazonaws.com"),
+                        sourceArn: api.arnForExecuteApi(method.toUpperCase(), resourcePath, api.deploymentStage.stageName),
+                    });
+                    lambdaFunction.addPermission(name + resourcePath + "test-execute", {
+                        principal: new ServicePrincipal("apigateway.amazonaws.com"),
+                        sourceArn: api.arnForExecuteApi(method.toUpperCase(), resourcePath, "test-invoke-stage"),
+                    });
+                });
             }
         }
-        return new InlineApiDefinition(template);
+        return {
+            definition: new InlineApiDefinition(template),
+            permissionFuncs,
+        };
     }
 }
