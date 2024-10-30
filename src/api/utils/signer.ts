@@ -1,7 +1,7 @@
 import {UrlPair} from "../schema-types/url-pair";
 import {GetObjectCommand, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
-import {Attachment} from "../schema-types/attachment";
+import {DocumentAttachment} from "../schema-types/attachment";
 
 interface SignerOptions {
     /**
@@ -21,7 +21,7 @@ interface SignerOptions {
      */
     attachment?: string,
 }
-const client = new S3Client();
+const client: S3Client = new S3Client();
 
 export async function signUrls(options: SignerOptions): Promise<UrlPair> {
     const objectKey = `${options.owner}/documents/${options.document}${options.attachment ? `/attachments/${options.attachment}` : "/content"}`;
@@ -39,8 +39,8 @@ export async function signUrls(options: SignerOptions): Promise<UrlPair> {
     };
 }
 
-export async function signAttachments(owner: string, documentId: string, attachments: Attachment[], canWrite: boolean): Promise<Attachment[]> {
-    const signed: Attachment[] = [];
+export async function signAttachments(owner: string, documentId: string, attachments: DocumentAttachment[], canWrite: boolean): Promise<DocumentAttachment[]> {
+    const signed: DocumentAttachment[] = [];
     for (const attachment of attachments) {
         signed.push({
             id: attachment.id,
