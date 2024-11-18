@@ -24,6 +24,12 @@ components:
       in: "header"
       x-amazon-apigateway-authtype: "cognito_user_pools"
 
+x-amazon-apigateway-request-validators:
+  all:
+    validateRequestBody: true
+    validateRequestParameters: true
+x-amazon-apigateway-request-validator: all
+
 paths:
   /test:
     get:
