@@ -1,0 +1,3 @@
+# API Definition Notes
+
+Biggest note at the moment is that for some godforsaken reason, API Gateway will not recognize schemas if they have internal references. Unless you put it in components and then it's fine.... Fuck this shit....
