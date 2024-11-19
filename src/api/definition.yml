@@ -14,7 +14,7 @@ components:
       required: true
       schema:
         oneOf:
-          - $ref: "schemas/uuid.json"
+          - $ref: "compiled-schemas/uuid.json"
           - enum:
               - me
   securitySchemes:
@@ -67,7 +67,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "schemas/document-part.json"
+                  $ref: "compiled-schemas/document-part.json"
         "401":
           $ref: "#/components/responses/unauthorized"
         "403":
@@ -87,14 +87,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "schemas/document-create.json"
+              $ref: "compiled-schemas/document-create.json"
       responses:
         "200":
           description: The document was created successfully.
           content:
             application/json:
               schema:
-                $ref: "schemas/document.json"
+                $ref: "compiled-schemas/document.json"
         "401":
           $ref: "#/components/responses/unauthorized"
         "403":
@@ -117,14 +117,14 @@ paths:
           name: document
           required: true
           schema:
-            $ref: "schemas/uuid.json"
+            $ref: "compiled-schemas/uuid.json"
       responses:
         "200":
           description: A document
           content:
             application/json:
               schema:
-                $ref: "schemas/document.json"
+                $ref: "compiled-schemas/document.json"
         "401":
           $ref: "#/components/responses/unauthorized"
         "403":
@@ -146,7 +146,7 @@ paths:
           name: document
           required: true
           schema:
-            $ref: "schemas/uuid.json"
+            $ref: "compiled-schemas/uuid.json"
       requestBody:
         description: A JSON Patch document describing the changes to the metadata.
         content:
@@ -154,14 +154,14 @@ paths:
             schema:
               type: array
               items:
-                $ref: "schemas/json-patch.json"
+                $ref: "compiled-schemas/json-patch.json"
       responses:
         "200":
           description: The updated metadata.
           content:
             application/json:
               schema:
-                $ref: "schemas/document.json"
+                $ref: "compiled-schemas/document.json"
         "401":
           $ref: "#/components/responses/unauthorized"
         "403":
