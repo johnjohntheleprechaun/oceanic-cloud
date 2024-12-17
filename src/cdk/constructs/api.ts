@@ -1,4 +1,4 @@
-import {CognitoUserPoolsAuthorizer, IRestApi, InlineApiDefinition, LambdaIntegration, RestApi, SpecRestApi} from "aws-cdk-lib/aws-apigateway";
+import {CognitoUserPoolsAuthorizer, IRestApi, InlineApiDefinition, LambdaIntegration, RestApi, SpecRestApi, TokenAuthorizer} from "aws-cdk-lib/aws-apigateway";
 import {Construct} from "constructs";
 import {OceanicUsers} from "./users";
 import {lambdaDefaults} from "../oceanic-cloud-stack";
@@ -9,7 +9,7 @@ import {Effect, Policy, PolicyDocument, PolicyStatement, ServicePrincipal} from 
 import {readFileSync, writeFileSync} from "fs";
 import {AllowedMethods, CachePolicy, Distribution, KeyGroup, OriginRequestPolicy, PublicKey, ResponseHeadersPolicy} from "aws-cdk-lib/aws-cloudfront";
 import {HttpOrigin, RestApiOrigin, S3Origin} from "aws-cdk-lib/aws-cloudfront-origins";
-import {CfnOutput, Names, Stack} from "aws-cdk-lib";
+import {Arn, ArnFormat, CfnOutput, Names, Stack} from "aws-cdk-lib";
 import {iamUUIDWildcard} from "../utils/constants";
 
 interface OceanicApiProps {
@@ -132,24 +132,42 @@ export class OceanicApi extends Construct {
         const templateFile = readFileSync(templatePath).toString();
         const template = JSON.parse(templateFile);
 
-        // add the cognito authorizer
-        const authorizerDefinition = {
-            "type": "http",
-            "scheme": "bearer",
-            "x-amazon-apigateway-authtype": "cognito_user_pools",
-            "x-amazon-apigateway-authorizer": {
+        const testing = this.node.tryGetContext("dummyAuth");
+
+        let authorizer: any;
+        if (testing === "true") {
+            const dummyFunction = new NodejsFunction(this, "dummyAuthorizer", {
+                runtime: lambdaDefaults.runtime,
+                architecture: lambdaDefaults.architecture,
+                entry: "src/api/dummy-authorizer.ts",
+                memorySize: 256,
+            });
+            dummyFunction.addPermission("dummyAuthPermissions", {
+                principal: new ServicePrincipal("apigateway.amazonaws.com"),
+            });
+            const {region, partition} = Arn.split(dummyFunction.functionArn, ArnFormat.COLON_RESOURCE_NAME);
+            authorizer = {
+                type: "token",
+                authorizerUri: `arn:${partition}:apigateway:${region}:lambda:path/2015-03-31/functions/${dummyFunction.functionArn}/invocations`,
+                authorizerResultTtlInSeconds: 0,
+            };
+            new CfnOutput(this, "arn", {
+                value: dummyFunction.functionArn,
+            });
+        }
+        else {
+            authorizer = {
                 "type": "cognito_user_pools",
                 "providerARNs": [
                     this.cognito.userPool.userPoolArn,
                 ],
-            },
-        };
-
+            };
+        }
         if (template["components"]["securitySchemes"]) {
             for (const security in template["components"]["securitySchemes"]) {
                 const definition = template["components"]["securitySchemes"][security];
-                if (definition["x-amazon-apigateway-authtype"] === authorizerDefinition["x-amazon-apigateway-authtype"]) {
-                    template["components"]["securitySchemes"][security]["x-amazon-apigateway-authorizer"] = authorizerDefinition["x-amazon-apigateway-authorizer"];
+                if (definition["x-amazon-apigateway-authtype"] === "cognito_user_pools") {
+                    template["components"]["securitySchemes"][security]["x-amazon-apigateway-authorizer"] = authorizer;
                 }
             }
         }
