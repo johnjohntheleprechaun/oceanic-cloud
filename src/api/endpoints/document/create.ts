@@ -1,26 +1,17 @@
 import {APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult, Context} from "aws-lambda";
-import documentCreateSchema from "../../compiled-schemas/document-create.json";
-import Ajv from "ajv";
 import {DocumentCreateRequest} from "../../schema-types/document-create";
 import {ConditionalCheckFailedException, DynamoDBClient, PutItemCommand} from "@aws-sdk/client-dynamodb";
 import assert from "assert";
 import {marshall} from "@aws-sdk/util-dynamodb";
-import addFormats from "ajv-formats";
 import {DocumentInfo} from "../../schema-types/document";
 import {signUrls} from "../../utils/signer";
-
-const ajv = new Ajv();
-addFormats(ajv);
-const verifier = ajv.compile(documentCreateSchema);
+import {putItemWithSchema} from "../../utils/dynamo";
+import dynamoDocumentInfo from "../../compiled-schemas/dynamodb/document.json";
+import {ProxyEvent} from "../../utils/proxy-event";
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
     const document: DocumentCreateRequest = JSON.parse(event.body || "{}");
-    if (!verifier(document)) {
-        return {
-            statusCode: 400,
-            body: "request does not match the schema",
-        };
-    }
+    console.log(document);
     if (!event.pathParameters || !event.pathParameters.user) {
         return {
             statusCode: 500,
@@ -29,9 +20,8 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     }
 
     // set up vars for stuff :3
-    const dynamoClient = new DynamoDBClient();
-    assert(event.requestContext.authorizer);
-    const userId: string = event.requestContext.authorizer.claims.sub;
+    //assert(event.requestContext.authorizer);
+    const userId: string = ProxyEvent.getUserId(event);
     if (event.pathParameters.user !== "me" && event.pathParameters.user !== userId) {
         return {
             statusCode: 403,

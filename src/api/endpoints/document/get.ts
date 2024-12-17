@@ -3,10 +3,10 @@ import {APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult, Con
 import {unmarshall} from "@aws-sdk/util-dynamodb";
 import {DocumentInfo} from "../../schema-types/document";
 import {signAttachments, signUrls} from "../../utils/signer";
+import {ProxyEvent} from "../../utils/proxy-event";
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
     if (
-        !event.requestContext.authorizer || !event.requestContext.authorizer.claims.sub ||
         !event.pathParameters || !event.pathParameters.user || !event.pathParameters.document
     ) {
         return {
@@ -14,9 +14,9 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             body: "some shit broken"
         }
     }
-    const sub = event.requestContext.authorizer.claims.sub as string;
+    const sub = ProxyEvent.getUserId(event);
     const documentId = event.pathParameters.document;
-    const userId = event.pathParameters.user === "me" ? event.requestContext.authorizer.claims.sub as string : event.pathParameters.user; // I know this seems redundant, but it's here because in the future document sharing will be allowed (hopefully....)
+    const userId = event.pathParameters.user === "me" ? sub : event.pathParameters.user; // I know this seems redundant, but it's here because in the future document sharing will be allowed (hopefully....)
 
     // get the document info
     const dynamoClient = new DynamoDBClient();
