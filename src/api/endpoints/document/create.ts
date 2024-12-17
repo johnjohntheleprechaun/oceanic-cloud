@@ -35,13 +35,14 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         dataTypeUser: `documents:${userId}`,
         id: documentId,
         ...document.title && {title: Buffer.from(document.title, "base64")},
-        type: document.type,
-        created: document.created ? document.created : timeNow,
-        updated: document.updated ? document.updated : timeNow,
+        documentType: document.type,
+        documentCreated: document.created ? document.created : timeNow,
+        documentUpdated: document.updated ? document.updated : timeNow,
         documentKey: Buffer.from(document.documentKey, "base64"),
         ...document.attachments && {attachments: document.attachments},
         ...document.authorizedUsers && {authorizedUsers: document.authorizedUsers},
     };
+    console.log(newDocument)
     // add the document to dynamodb
     const putCommand = new PutItemCommand({
         TableName: process.env["DYNAMO_TABLE"],
@@ -49,7 +50,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ConditionExpression: "attribute_not_exists(id)",
     });
     try {
-        const resp = await dynamoClient.send(putCommand);
+        const resp = await putItemWithSchema(putCommand, dynamoDocumentInfo);
     }
     catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
