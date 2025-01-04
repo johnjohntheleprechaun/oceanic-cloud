@@ -12,6 +12,7 @@
             "$ref": "../uuid.json"
         },
         "documentTitle": {
+            "type": "object",
             "isBuffer": true
         },
         "documentType": {
@@ -24,6 +25,7 @@
             "type": "number"
         },
         "documentKey": {
+            "type": "object",
             "isBuffer": true
         }
     },
