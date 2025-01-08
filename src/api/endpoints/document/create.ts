@@ -1,13 +1,12 @@
 import {APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult, Context} from "aws-lambda";
 import {DocumentCreateRequest} from "../../schema-types/document-create";
-import {ConditionalCheckFailedException, DynamoDBClient, PutItemCommand} from "@aws-sdk/client-dynamodb";
-import assert from "assert";
+import {ConditionalCheckFailedException, PutItemCommand} from "@aws-sdk/client-dynamodb";
 import {marshall} from "@aws-sdk/util-dynamodb";
 import {DocumentInfo} from "../../schema-types/document";
 import {signUrls} from "../../utils/signer";
 import {putItemWithSchema} from "../../utils/dynamo";
-import dynamoDocumentInfo from "../../compiled-schemas/dynamodb/document.json";
 import {ProxyEvent} from "../../utils/proxy-event";
+import dynamoDocumentSchema from "../../compiled-schemas/dynamodb/document.json";
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
     const document: DocumentCreateRequest = JSON.parse(event.body || "{}");
@@ -50,7 +49,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         ConditionExpression: "attribute_not_exists(id)",
     });
     try {
-        const resp = await putItemWithSchema(putCommand, dynamoDocumentInfo);
+        await putItemWithSchema(putCommand, dynamoDocumentSchema)
     }
     catch (e) {
         if (e instanceof ConditionalCheckFailedException) {
